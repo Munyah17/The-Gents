@@ -1,0 +1,67 @@
+/* ===== Mobile excellence ===== */
+@media(max-width:800px){
+  html,body{overflow-x:hidden;overflow-x:clip}
+  a,button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  img{max-width:100%}
+  .shell{padding:0 18px}
+  .dash-main{padding:22px 16px}
+  .dash-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .stat{padding:14px}
+  .contact-grid{grid-template-columns:1fr}
+  .page-panel{padding:20px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}
+  .table-wrap table{min-width:640px}
+  .table-wrap th,.table-wrap td{padding:10px 12px;font-size:12.5px;white-space:nowrap}
+  .data-line{flex-wrap:wrap;gap:4px 12px}
+  .segmented{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .segmented::-webkit-scrollbar{display:none}
+  .segmented .pill{white-space:nowrap;flex:none}
+  .service-row{flex-wrap:wrap;row-gap:10px}
+  .service-row .row-actions{margin-left:auto}
+  .chart{overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+  .chart::-webkit-scrollbar{display:none}
+  .chart .bar{min-width:15px;flex:none}
+  .chart .bar span{display:none}
+  .payslip{padding:16px}
+  .kv{grid-template-columns:96px 1fr;font-size:12.5px}
+  .steps{gap:4px}
+  .step{font-size:10px}
+  .step-num{width:30px;height:30px;font-size:12px}
+  .slider-bottom{flex-wrap:wrap;gap:10px;left:24px;right:20px}
+  .slider-arrows{margin-left:auto}
+  .overlay{padding:12px}
+  .modal{padding:20px;border-radius:13px}
+  .io-bar .btn{font-size:11px;padding:7px 10px}
+  .dash-mobile{scrollbar-width:none}
+  .dash-mobile::-webkit-scrollbar{display:none}
+  .dash-mobile button{white-space:nowrap}
+  .footer{padding:34px 0 26px}
+  .footer-inner{gap:14px}
+  .btn{min-height:42px}
+  .icon-btn{min-width:42px;min-height:42px}
+  .cal-day{min-height:62px}
+  input,select,textarea,.field{font-size:16px}
+  .booking-wrap{padding:0}
+  .empty{padding:26px 16px}
+  .appointment{row-gap:10px}
+}
+@media(max-width:480px){
+  .stat .number{font-size:21px}
+  .dash-top h1{font-size:24px}
+  .page-head h1{font-size:30px}
+  .slider-content{padding:72px 18px 84px}
+  .cal-day{min-height:50px;padding:4px}
+  .cal-day .n{font-size:11px}
+  .cal-count{top:4px;right:5px;font-size:9px}
+  .chart .bar{min-width:12px}
+  .table-wrap table{min-width:560px;font-size:12px}
+  .kv{grid-template-columns:78px 1fr}
+  .payslip-head h3{font-size:17px}
+  .service-row .service-icon{width:38px;height:38px;font-size:15px}
+  .step:not(:last-child):after{top:15px}
+}
+@media(max-width:360px){
+  .stat-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .cal-day{min-height:46px}
+}

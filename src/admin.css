@@ -1,0 +1,33 @@
+/* ===== Admin portal ===== */
+.adm-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.cal-head h3{font-size:20px;margin:0}
+.cal-dows{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+.cal-dow{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:center;padding:4px 0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-day{min-height:88px;border:1px solid var(--line);border-radius:10px;padding:7px 8px;font-size:12px;background:var(--surface);cursor:pointer;position:relative;transition:border-color .15s}
+.cal-day:hover{border-color:var(--gold)}
+.cal-day.muted{opacity:.35;cursor:default}
+.cal-day.muted:hover{border-color:var(--line)}
+.cal-day.today{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.cal-day .n{font-weight:700}
+.cal-count{position:absolute;top:6px;right:8px;font-size:10px;font-weight:700;color:var(--gold)}
+.cal-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.cal-chip{font-size:9px;background:var(--gold-soft);color:var(--gold);border-radius:20px;padding:2px 7px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.chart{display:flex;align-items:flex-end;gap:6px;height:170px;padding-top:8px}
+.chart .bar{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.chart .bar i{width:100%;max-width:38px;background:linear-gradient(180deg,var(--gold),#8a6a25);border-radius:6px 6px 0 0;display:block}
+.chart .bar span{font-size:9px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:9px 14px;font-size:13px}
+.kv span{color:var(--muted)}
+.side-nav button[data-action="adm-logout"]{color:#e08a8a}
+@media(max-width:800px){.cal-day{min-height:56px;padding:5px}.cal-chip{display:none}.cal-count{top:4px;right:6px}.chart .bar span{display:none}.kv{grid-template-columns:90px 1fr}}
+
+/* ===== ERP / staff / IO ===== */
+.side-nav{overflow-y:auto;scrollbar-width:thin}
+.side-nav button{font-size:14px;padding:12px 18px;letter-spacing:.2px}
+.dash-mobile button{font-size:13px}
+.io-bar{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
+.payslip{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--surface)}
+.payslip-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+
