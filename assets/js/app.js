@@ -2,42 +2,53 @@
 (()=>{
 'use strict';
 const IM={hero:'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&q=85',salon:'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&q=80',salon2:'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&q=80',salon3:'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=900&q=80',barber1:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80',barber2:'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=620&q=80',barber3:'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=620&q=80',barber4:'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=620&q=80',equipment:'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=700&q=80'};
-const initial={branches:[{id:'borrowdale',name:'Borrowdale',place:'Borrowdale, Harare',hours:'Mon–Sat · 08:00–19:00',photo:IM.salon},{id:'fife',name:'Fife Avenue',place:'Fife Avenue, Harare',hours:'Mon–Sat · 08:00–18:00',photo:IM.salon2}],services:[{id:'cut',name:'Precision Haircut',desc:'A clean, refined cut tailored to your style.',price:12,duration:30,icon:'✂',branches:['borrowdale','fife']},{id:'beard',name:'Beard Grooming',desc:'Shape, trim and maintain a well-groomed beard.',price:8,duration:20,icon:'♜',branches:['borrowdale','fife']},{id:'shave',name:'Classic Shave',desc:'A close shave with a polished finish.',price:10,duration:30,icon:'⌁',branches:['borrowdale','fife']},{id:'facial',name:'Facial Treatment',desc:'A refreshing skin care treatment.',price:25,duration:45,icon:'✧',branches:['borrowdale','fife']},{id:'package',name:'The Signature',desc:'Haircut, beard grooming and facial.',price:40,duration:90,icon:'✦',branches:['borrowdale','fife']}],barbers:[{id:'tawanda',name:'Tawanda M.',role:'Senior Barber',branch:'borrowdale',photo:IM.barber1,services:['cut','beard','shave','package']},{id:'prince',name:'Prince C.',role:'Master Barber',branch:'fife',photo:IM.barber2,services:['cut','beard','facial','package']},{id:'kuda',name:'Kuda N.',role:'Barber',branch:'fife',photo:IM.barber3,services:['cut','beard','shave','package']},{id:'brian',name:'Brian T.',role:'Grooming Specialist',branch:'borrowdale',photo:IM.barber4,services:['cut','facial','package']}],bookings:[],contacts:[],notifications:[],membership:false,settings:{name:'The Gent’s',phone:'+263 77 601 1938',email:'admin@thegents.co.zw',address:'Fife Avenue & Borrowdale, Harare'},clientProfile:{name:'T. Moyo',phone:'+263771234567',email:'tmoyo@example.com',favBranch:'',favBarber:''}};
+const HE=[{title:'Modern Grooming for the Gentleman',desc:'Precision cuts, expert grooming and a premium lounge experience.',photo:IM.hero},{title:'Your Style. Our Craft.',desc:'Thoughtful details and precision barbering for every gentleman.',photo:IM.salon3},{title:'A Cut Above the Ordinary.',desc:'A relaxed space, skilled hands and a fresh look.',photo:IM.salon2},{title:'Made for the Modern Gent.',desc:'Discover signature haircuts, shaves and personal grooming.',photo:IM.salon},{title:'Find Your Perfect Barber.',desc:'Choose your branch, barber and preferred time in minutes.',photo:IM.equipment}];
+const GE=[{url:IM.salon,alt:'Barbershop interior',category:'Salon'},{url:IM.salon2,alt:'Professional styling',category:'Salon'},{url:IM.hero,alt:'Barber grooming a client',category:'Haircuts'},{url:IM.salon3,alt:'Classic grooming',category:'Grooming'},{url:IM.equipment,alt:'Barbershop grooming equipment',category:'Grooming'},{url:IM.barber1,alt:'Barber portrait',category:'Haircuts'},{url:IM.salon2,alt:'Grooming stations',category:'Salon'},{url:IM.barber3,alt:'Professional barber',category:'Haircuts'}];
+const initial={branches:[{id:'borrowdale',name:'Borrowdale',place:'Borrowdale, Harare',hours:'Mon–Sat · 08:00–19:00',photo:IM.salon},{id:'fife',name:'Fife Avenue',place:'Fife Avenue, Harare',hours:'Mon–Sat · 08:00–18:00',photo:IM.salon2}],services:[{id:'cut',name:'Precision Haircut',desc:'A clean, refined cut tailored to your style.',price:12,duration:30,icon:'✂',branches:['borrowdale','fife']},{id:'beard',name:'Beard Grooming',desc:'Shape, trim and maintain a well-groomed beard.',price:8,duration:20,icon:'♜',branches:['borrowdale','fife']},{id:'shave',name:'Classic Shave',desc:'A close shave with a polished finish.',price:10,duration:30,icon:'⌁',branches:['borrowdale','fife']},{id:'facial',name:'Facial Treatment',desc:'A refreshing skin care treatment.',price:25,duration:45,icon:'✧',branches:['borrowdale','fife']},{id:'package',name:'The Signature',desc:'Haircut, beard grooming and facial.',price:40,duration:90,icon:'✦',branches:['borrowdale','fife']}],barbers:[{id:'tawanda',name:'Tawanda M.',role:'Senior Barber',branch:'borrowdale',photo:IM.barber1,services:['cut','beard','shave','package']},{id:'prince',name:'Prince C.',role:'Master Barber',branch:'fife',photo:IM.barber2,services:['cut','beard','facial','package']},{id:'kuda',name:'Kuda N.',role:'Barber',branch:'fife',photo:IM.barber3,services:['cut','beard','shave','package']},{id:'brian',name:'Brian T.',role:'Grooming Specialist',branch:'borrowdale',photo:IM.barber4,services:['cut','facial','package']}],bookings:[],contacts:[],notifications:[],membership:false,hero:HE.map(x=>({...x})),gallery:GE.map(x=>({...x})),settings:{name:'The Gent’s',phone:'+263 77 601 1938',email:'admin@thegents.co.zw',whatsapp:'+263776011938',address:'Fife Avenue & Borrowdale, Harare'},clientProfile:{name:'T. Moyo',phone:'+263771234567',email:'tmoyo@example.com',favBranch:'',favBarber:''}};
 const storage={getItem(k){try{return window.localStorage.getItem(k)}catch(e){return null}},setItem(k,v){try{window.localStorage.setItem(k,v)}catch(e){}},removeItem(k){try{window.localStorage.removeItem(k)}catch(e){}}};
 const KEY='gents_prototype_v5';let db;try{db=JSON.parse(storage.getItem(KEY))||structuredClone(initial)}catch{db=structuredClone(initial)};if(!db.branches||!db.bookings)db=structuredClone(initial);
 const today=new Date();today.setHours(12,0,0,0);const dateOffset=(n)=>{let d=new Date(today);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 if(!db.seeded){db.bookings=[{id:'GT-1042',name:'T. Moyo',phone:'+263771234567',email:'tmoyo@example.com',branch:'borrowdale',service:'cut',barber:'tawanda',date:dateOffset(1),time:'10:00',status:'Confirmed',source:'Online'},{id:'GT-1043',name:'C. Dube',phone:'+263772234567',email:'cdube@example.com',branch:'fife',service:'beard',barber:'prince',date:dateOffset(2),time:'11:30',status:'Pending',source:'Online'},{id:'GT-1044',name:'R. Chikomo',phone:'+263773234567',email:'rchikomo@example.com',branch:'fife',service:'cut',barber:'kuda',date:dateOffset(3),time:'13:00',status:'Pending',source:'Online'},{id:'GT-1045',name:'N. Sibanda',phone:'+263774234567',email:'nsibanda@example.com',branch:'borrowdale',service:'package',barber:'brian',date:dateOffset(-2),time:'14:00',status:'Completed',source:'Walk-in'}];db.seeded=true}
-const save=()=>storage.setItem(KEY,JSON.stringify(db));save();
+if(!Array.isArray(db.hero)||!db.hero.length)db.hero=HE.map(x=>({...x}));if(!Array.isArray(db.gallery)||!db.gallery.length)db.gallery=GE.map(x=>({...x}));if(!db.settings)db.settings={name:'The Gent’s',phone:'+263 77 601 1938',email:'admin@thegents.co.zw',whatsapp:'+263 77 601 1938',address:'Fife Avenue & Borrowdale, Harare'};
+let remoteTimer=null,remoteDirty=false;
+const adoptRemote=d=>{if(!d)return;for(const k in db)delete db[k];Object.assign(db,d);syncHero();storage.setItem(KEY,JSON.stringify(db))};
+const gentsRole=()=>{try{return sessionStorage.getItem('gents_auth')==='admin'?'admin':'guest'}catch(e){return 'guest'}};
+const remoteSave=()=>{if(!/^https?:$/.test(location.protocol))return;remoteDirty=true;clearTimeout(remoteTimer);remoteTimer=setTimeout(async()=>{try{const r=await fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json','X-Gents-Role':gentsRole()},body:JSON.stringify(db),credentials:'same-origin'});if(r.status===401||r.status===403){toast('Your session expired — please sign in again.');return}const j=await r.json();if(j&&j.data)adoptRemote(j.data)}catch(e){}remoteDirty=false},400)};
+window.addEventListener('pagehide',()=>{if(remoteDirty&&/^https?:$/.test(location.protocol)){try{navigator.sendBeacon('api/db.php',JSON.stringify(db))}catch(e){}}});
+async function bootRemote(){if(!/^https?:$/.test(location.protocol))return;try{const r=await fetch('api/db.php',{credentials:'same-origin'});if(!r.ok)return;const j=await r.json();if(!j||!j.ok)return;if(j.data){if(!remoteDirty)adoptRemote(j.data)}else remoteSave();if(gentsRole()==='admin'){const ar=await fetch('api/auth.php',{credentials:'same-origin'});const aj=await ar.json().catch(()=>null);if(!aj||!aj.ok){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff')}catch(e){}if(page==='admin')render()}}}catch(e){}}
+const save=(push=true)=>{storage.setItem(KEY,JSON.stringify(db));if(push)remoteSave()};save(false);
 let page=document.body.dataset.page||'home',dark=storage.getItem('gents_theme')==='dark',dashboardTab='overview',clientTab='upcoming',branchFilter='all',barberFilter='all',galleryFilter='all',bookingStep=0,booking={},selectedImage='',dateStart=1;
 if(dark)document.documentElement.classList.add('dark');
 const auth=(r)=>{try{return sessionStorage.getItem('gents_auth')===r}catch(e){return false}};const esc=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const branch=(id)=>db.branches.find(x=>x.id===id)||{name:id,place:''};const service=(id)=>db.services.find(x=>x.id===id)||{name:id,price:0,duration:30};const barber=(id)=>db.barbers.find(x=>x.id===id)||{name:id};const money=(x)=>'$'+Number(x||0).toFixed(2);
 const fmt=(s)=>s?new Date(s+'T12:00:00').toLocaleDateString('en-ZW',{day:'numeric',month:'short',year:'numeric'}):'—';const badge=(s)=>`<span class="status ${esc((s||'').toLowerCase().replace(/\s/g,''))}">${esc(s)}</span>`;
 const button=(text,act,klass='btn')=>`<button class="${klass}" data-action="${act}">${text}</button>`;
-function header(){return `<header class="nav"><div class="shell"><a class="brand" data-page="home"><div class="brand-icon">⚒</div><div><div class="brand-title">The Gent’s</div><div class="brand-sub">BARBER & GENTS SALON</div></div></a><nav id="links" class="links">${[['home','Home'],['services','Services'],['barbers','Barbers'],['gallery','Gallery'],['contact','Contact']].map(([k,t])=>`<button data-page="${k}" class="navlink ${page===k?'active':''}">${t}</button>`).join('')}</nav><div class="nav-actions"><button class="icon-btn" data-action="theme" title="Toggle dark mode">${dark?'☀':'☾'}</button><button class="btn" data-page="login">Login</button><button class="btn btn-gold" data-action="start-booking">Book Now</button><button class="icon-btn menu-toggle" data-action="menu">☰</button></div></div></header>`}
-function footer(){return `<footer class="footer"><div class="shell footer-inner"><a class="brand" data-page="home"><span class="brand-icon">⚒</span><span><span class="brand-title">The Gent’s</span><div class="brand-sub">BARBER & GENTS SALON</div></span></a><div class="footer-links"><a data-page="services">Services</a><a data-page="barbers">Barbers</a><a data-page="contact">Contact</a></div><small>© 2026 The Gent’s · Interactive concept only · Developed and Powered By <a href="https://www.globalspaceweb.co.zw" target="_blank" rel="noopener" style="color:var(--gold)">Global Space Web</a></small></div></footer>`}
+function header(){return `<header class="nav"><div class="shell"><button class="icon-btn menu-toggle" data-action="menu">☰</button><a class="brand" data-page="home"><div class="brand-icon">⚒</div><div><div class="brand-title">The Gent’s</div><div class="brand-sub">BARBER & GENTS SALON</div></div></a><nav id="links" class="links">${[['home','Home'],['services','Services'],['barbers','Barbers'],['gallery','Gallery'],['contact','Contact']].map(([k,t])=>`<button data-page="${k}" class="navlink ${page===k?'active':''}">${t}</button>`).join('')}</nav><div class="nav-actions"><button class="icon-btn" data-action="theme" title="Toggle dark mode">${dark?'☀':'☾'}</button><button class="btn" data-page="login">Login</button><button class="btn btn-gold" data-action="start-booking">Book Now</button></div></div></header>`}
+function footer(){const s=db.settings||{};const ph=s.phone||'+263 77 601 1938',em=s.email||'admin@thegents.co.zw',ad=s.address||'Fife Avenue & Borrowdale, Harare',wa=(s.whatsapp||ph).replace(/[^0-9]/g,'');return `<footer class="footer"><div class="shell footer-grid"><div class="footer-col"><a class="brand" data-page="home"><span class="brand-icon">⚒</span><span><span class="brand-title">The Gent’s</span><div class="brand-sub">BARBER & GENTS SALON</div></span></a><p class="footer-about">Precision cuts, expert grooming and a premium lounge experience — Harare’s destination for the modern gentleman.</p><div class="footer-social"><a class="footer-icon" href="https://wa.me/${wa}" target="_blank" rel="noopener" title="WhatsApp us">✆</a><a class="footer-icon" href="mailto:${esc(em)}" title="Email us">✉</a><a class="footer-icon" href="tel:${esc(ph.replace(/[^0-9+]/g,''))}" title="Call us">☎</a></div></div><div class="footer-col"><h4>Quick Links</h4><a class="flink" data-page="home">Home</a><a class="flink" data-page="services">Services</a><a class="flink" data-page="barbers">Our Barbers</a><a class="flink" data-page="gallery">Gallery</a><a class="flink" data-page="contact">Contact Us</a></div><div class="footer-col fcontact"><h4>Get in Touch</h4><div><span class="fi">☎</span><a href="tel:${esc(ph.replace(/[^0-9+]/g,''))}">${esc(ph)}</a></div><div><span class="fi">✉</span><a href="mailto:${esc(em)}">${esc(em)}</a></div><div><span class="fi">⌖</span><span>${esc(ad)}</span></div><div><span class="fi">◷</span><span>Mon–Sat · 08:00–19:00</span></div></div><div class="footer-col"><h4>Opening Hours</h4><div class="fhours">${db.branches.map(b=>`<div class="fh"><b>${esc(b.name)}</b><span>${esc(b.hours||'')}</span></div>`).join('')}</div><div class="footer-cta">${button('Book Appointment →','start-booking','btn btn-gold')}</div></div></div><div class="shell footer-bottom"><small>© 2026 The Gent’s · Interactive concept only · Developed and Powered By <a href="https://www.globalspaceweb.co.zw" target="_blank" rel="noopener" style="color:var(--gold)">Global Space Web</a></small></div></footer>`}
 const heading=(k,h,sub='')=>`<div class="heading-row"><div><div class="eyebrow">${k}</div><h2>${h}</h2>${sub?`<p class="muted">${sub}</p>`:''}</div></div>`;
 const branchTiles=()=>db.branches.map(x=>`<button data-action="open-branch:${x.id}" class="card tile"><span class="tile-icon">⌖</span><span><strong>${esc(x.name)}</strong><small>${esc(x.place)}</small></span><span class="arrow">→</span></button>`).join('');
-const heroSlides=[
-{title:'Modern Grooming<br>for the Gentleman',desc:'Precision cuts, expert grooming and a premium lounge experience.',photo:IM.hero},
-{title:'Your Style.<br>Our Craft.',desc:'Thoughtful details and precision barbering for every gentleman.',photo:IM.salon3},
-{title:'A Cut Above<br>the Ordinary.',desc:'A relaxed space, skilled hands and a fresh look.',photo:IM.salon2},
-{title:'Made for<br>the Modern Gent.',desc:'Discover signature haircuts, shaves and personal grooming.',photo:IM.salon},
-{title:'Find Your<br>Perfect Barber.',desc:'Choose your branch, barber and preferred time in minutes.',photo:IM.equipment}
-];
+const heroSlides=[];
 let slideIndex=0;
+const syncHero=()=>{const s=db.hero&&db.hero.length?db.hero:HE;heroSlides.splice(0,heroSlides.length,...s);if(slideIndex>=heroSlides.length)slideIndex=0};
+syncHero();
 function heroMarkup(){return `<section class="slider-hero" aria-label="The Gent’s featured highlights"><div class="slider-visual">${heroSlides.map((x,i)=>`<div class="hero-slide ${i===slideIndex?'active':''}" style="background-image:url('${x.photo}')"></div>`).join('')}<div class="hero-glass"></div></div><div class="slider-content"><div class="eyebrow">PREMIUM BARBER & GENTS SALON</div><h1 id="slide-title">${heroSlides[slideIndex].title}</h1><p id="slide-desc">${heroSlides[slideIndex].desc}</p><div class="hero-actions">${button('Book Appointment →','start-booking','btn btn-gold')}${button('Explore Services','go:services','btn btn-hero-outline')}</div></div><div class="slider-bottom"><div class="slider-dots">${heroSlides.map((x,i)=>`<button class="slider-dot ${i===slideIndex?'active':''}" aria-label="Slide ${i+1}" data-action="slide:${i}"></button>`).join('')}</div><div class="slider-arrows"><button class="slider-arrow" aria-label="Previous slide" data-action="slide-prev">←</button><button class="slider-arrow" aria-label="Next slide" data-action="slide-next">→</button></div></div></section>`}
-function serviceCard(x){return `<article class="card service-card"><div class="service-card-icon">${x.icon}</div><h3>${esc(x.name)}</h3><p>${esc(x.desc)}</p><div class="service-card-bottom"><span>${x.duration} min <b>· ${money(x.price)}</b></span><button class="service-book" data-action="book-service:${x.id}">Book ↗</button></div></article>`}
+function serviceCard(x){return `<article class="card service-card">${x.image?`<img class="service-img" src="${esc(x.image)}" alt="${esc(x.name)}">`:''}<div class="service-card-icon">${x.icon}</div><h3>${esc(x.name)}</h3><p>${esc(x.desc)}</p><div class="service-card-bottom"><span>${x.duration} min <b>· ${money(x.price)}</b></span><button class="service-book" data-action="book-service:${x.id}">Book ↗</button></div></article>`}
 
-function home(){return `${heroMarkup()}<div class="shell"><section class="section-tight">${heading('FIND YOUR LOCATION','Our Branches','Choose a location to explore its team and services.')}<div class="grid grid-4 branch-grid">${branchTiles()}</div></section><section class="section-tight">${heading('WHAT WE DO','Our Services','Simple, expert grooming.')}<div class="grid grid-4 service-grid">${db.services.slice(0,4).map(serviceCard).join('')}</div><div class="section-foot">${button('View All Services →','go:services')}</div></section><section class="section-tight">${heading('MEET THE TEAM','Our Barbers')}<div class="grid grid-4">${db.barbers.map(x=>barberCard(x)).join('')}</div></section><section class="section-tight">${heading('BEHIND THE CHAIR','Gallery')}<div class="grid grid-4">${galleryImages().slice(0,4).map(x=>`<div class="card"><img class="gallery-img" data-action="image:${x.url}" src="${x.url}" alt="${x.alt}"></div>`).join('')}</div></section></div>`}
+const STATS=[['✂','1,200+','Happy Clients'],['♛','8+','Years of Craft'],['⌖','2','Prime Locations'],['★','4.9','Average Rating']];
+const WHY=[['✂','Premium Tools & Products','Professional-grade equipment and products for every service on the menu.'],['♛','Expert Barbers','Skilled, vetted professionals who take genuine pride in their work.'],['⌖','Two Convenient Locations','Borrowdale and Fife Avenue — choose the branch closest to you.'],['◷','Effortless Booking','Reserve online in minutes or walk in during opening hours.']];
+const TESTIMONIALS=[{name:'T. Moyo',role:'Loyal Client · Borrowdale',text:'Best fade in Harare. The attention to detail is unreal — I haven’t missed an appointment in months.',rating:5},{name:'C. Dube',role:'Client · Fife Avenue',text:'Booked online in two minutes and the whole experience felt premium from start to finish.',rating:5},{name:'R. Chikomo',role:'Client · Borrowdale',text:'The Signature package is worth every cent. My beard has never looked this sharp.',rating:5}];
+function statsStrip(){return `<section class="section-tight" style="padding-top:8px"><div class="stat-grid">${STATS.map(([i,n,t])=>`<div class="stat"><span class="stat-icon">${i}</span><div class="number">${n}</div><div class="small">${t}</div></div>`).join('')}</div></section>`}
+function whyUs(){return `<section class="section-tight">${heading('WHY CHOOSE US','The Gent’s Difference','More than a haircut — a complete grooming experience.')}${`<div class="grid grid-4">${WHY.map(([i,t,d])=>`<div class="card why-card"><div class="why-icon">${i}</div><h3>${t}</h3><p>${d}</p></div>`).join('')}</div>`}</section>`}
+function testimonials(){return `<section class="section-tight">${heading('WALK-IN REVIEWS','Client Stories','Don’t just take our word for it.')}${`<div class="grid grid-3">${TESTIMONIALS.map(t=>`<div class="card testi-card"><div class="testi-stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div><p class="testi-quote">“${t.text}”</p><div class="testi-author"><strong>${esc(t.name)}</strong><span class="muted small">${esc(t.role)}</span></div></div>`).join('')}</div><div class="section-foot">${button('Book Your Appointment →','start-booking','btn btn-gold')}</div>`}</section>`}
+function home(){return `${heroMarkup()}<div class="shell">${statsStrip()}<section class="section-tight">${heading('FIND YOUR LOCATION','Our Branches','Choose a location to explore its team and services.')}<div class="grid grid-4 branch-grid">${branchTiles()}</div></section><section class="section-tight">${heading('WHAT WE DO','Our Services','Simple, expert grooming.')}<div class="grid grid-4 service-grid">${db.services.slice(0,4).map(serviceCard).join('')}</div><div class="section-foot">${button('View All Services →','go:services')}</div></section>${whyUs()}<section class="section-tight">${heading('MEET THE TEAM','Our Barbers')}<div class="grid grid-4 barber-row">${db.barbers.map(x=>barberCard(x)).join('')}</div></section><section class="section-tight">${heading('BEHIND THE CHAIR','Gallery')}<div class="grid grid-4">${galleryImages().slice(0,4).map(x=>`<div class="card"><img class="gallery-img" data-action="image:${x.url}" src="${x.url}" alt="${x.alt}"></div>`).join('')}</div></section>${testimonials()}</div>`}
 
 function services(){return `<div class="shell"><div class="page-head"><div class="eyebrow">OUR EXPERTISE</div><h1>Our Services</h1><p>Expert grooming services tailored for the modern gentleman. Select a card to book.</p></div><div class="grid grid-4 service-grid">${db.services.map(serviceCard).join('')}</div></div>`}
-function barberCard(x){return `<div class="card"><img class="barber-photo" src="${x.photo}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p>${button('Book with '+esc(x.name.split(' ')[0])+' →','book-barber:'+x.id,'btn btn-sm')}</div></div>`}
+function barberCard(x){return `<div class="card"><img class="barber-photo" src="${x.photo}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p>${x.bio?`<p class="small muted" style="margin:2px 0 8px">${esc(x.bio)}</p>`:''}${button('Book with '+esc(x.name.split(' ')[0])+' →','book-barber:'+x.id,'btn btn-sm')}</div></div>`}
 function barbers(){let list=db.barbers.filter(x=>barberFilter==='all'||x.branch===barberFilter);return `<div class="shell"><div class="page-head"><div class="eyebrow">THE TEAM</div><h1>Our Barbers</h1><p>Meet our skilled and experienced barbers.</p></div><div class="segmented" style="margin-bottom:22px">${[{id:'all',name:'All Branches'},...db.branches].map(x=>`<button class="pill ${barberFilter===x.id?'active':''}" data-action="barber-filter:${x.id}">${esc(x.name)}</button>`).join('')}</div><div class="grid grid-4">${list.map(barberCard).join('')}</div></div>`}
-function galleryImages(){return [{url:IM.salon,alt:'Barbershop interior',category:'Salon'},{url:IM.salon2,alt:'Professional styling',category:'Salon'},{url:IM.hero,alt:'Barber grooming a client',category:'Haircuts'},{url:IM.salon3,alt:'Classic grooming',category:'Grooming'},{url:IM.equipment,alt:'Barbershop grooming equipment',category:'Grooming'},{url:IM.barber1,alt:'Barber portrait',category:'Haircuts'},{url:IM.salon2,alt:'Grooming stations',category:'Salon'},{url:IM.barber3,alt:'Professional barber',category:'Haircuts'}]}
-function gallery(){const imgs=galleryImages().filter(x=>galleryFilter==='all'||x.category===galleryFilter);return `<div class="shell"><div class="page-head"><div class="eyebrow">OUR WORK</div><h1>Gallery</h1><p>A look inside The Gent’s experience.</p></div><div class="segmented" style="margin-bottom:23px">${['all','Salon','Haircuts','Grooming'].map(x=>`<button data-action="gallery-filter:${x}" class="pill ${galleryFilter===x?'active':''}">${x==='all'?'All':x}</button>`).join('')}</div><div class="grid grid-4">${imgs.map(x=>`<div class="card"><img loading="lazy" class="gallery-img" data-action="image:${x.url}" src="${x.url}" alt="${x.alt}"></div>`).join('')}</div></div>`}
+function galleryImages(){return (db.gallery&&db.gallery.length?db.gallery:GE).map(x=>({url:x.url,alt:x.alt||'Gallery image',category:x.category||'Salon'}))}
+function gallery(){const all=galleryImages(),cats=['all',...new Set(all.map(x=>x.category))],imgs=all.filter(x=>galleryFilter==='all'||x.category===galleryFilter);return `<div class="shell"><div class="page-head"><div class="eyebrow">OUR WORK</div><h1>Gallery</h1><p>A look inside The Gent’s experience.</p></div><div class="segmented" style="margin-bottom:23px">${cats.map(x=>`<button data-action="gallery-filter:${x}" class="pill ${galleryFilter===x?'active':''}">${x==='all'?'All':esc(x)}</button>`).join('')}</div><div class="grid grid-4">${imgs.map(x=>`<div class="card"><img loading="lazy" class="gallery-img" data-action="image:${x.url}" src="${x.url}" alt="${x.alt}"></div>`).join('')}</div></div>`}
 
-function contact(){return `<div class="shell"><div class="page-head"><div class="eyebrow">SAY HELLO</div><h1>Get in Touch</h1><p>We’re here to assist you.</p></div><div class="contact-grid"><form class="page-panel" id="contact-form"><h3>Send a message</h3><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" placeholder="Your name"></div><div class="form-group"><label class="form-label">Email</label><input class="field" required type="email" name="email" placeholder="you@example.com"></div></div><div class="form-group"><label class="form-label">Branch</label><select class="field" name="branch">${db.branches.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Message</label><textarea required class="field" name="message" placeholder="How can we help?"></textarea></div><button type="submit" class="btn btn-gold">Send Message →</button></form><div class="page-panel"><h3>Contact details</h3><div class="info-list"><div class="info-item"><span class="gold">☎</span><div><b>Phone</b><span class="muted">${esc(db.settings&&db.settings.phone||'+263 77 601 1938')}</span></div></div><div class="info-item"><span class="gold">✉</span><div><b>Email</b><span class="muted">${esc(db.settings&&db.settings.email||'admin@thegents.co.zw')}</span></div></div><div class="info-item"><span class="gold">⌖</span><div><b>Locations</b><span class="muted">${esc(db.settings&&db.settings.address||'Fife Avenue & Borrowdale, Harare')}</span></div></div></div><div style="margin-top:28px">${button('WhatsApp enquiry ↗','whatsapp-demo')}</div><div style="background:var(--soft);border:1px solid var(--line);padding:28px;text-align:center;border-radius:12px;margin-top:22px;color:var(--muted)">⌖ &nbsp; Branch directions available on each branch page</div></div></div></div>`}
+function contact(){const s=db.settings||{};const ph=s.phone||'+263 77 601 1938',em=s.email||'admin@thegents.co.zw',ad=s.address||'Fife Avenue & Borrowdale, Harare';return `<div class="shell"><div class="page-head"><div class="eyebrow">SAY HELLO</div><h1>Get in Touch</h1><p>We’re here to assist you.</p></div><div class="contact-grid"><form class="page-panel" id="contact-form"><h3>Send a message</h3><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" placeholder="Your name"></div><div class="form-group"><label class="form-label">Email</label><input class="field" required type="email" name="email" placeholder="you@example.com"></div></div><div class="form-group"><label class="form-label">Branch</label><select class="field" name="branch">${db.branches.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Message</label><textarea required class="field" name="message" placeholder="How can we help?"></textarea></div><button type="submit" class="btn btn-gold">Send Message →</button></form><div class="page-panel"><h3>Contact details</h3><div class="info-list"><div class="info-item"><span class="gold">☎</span><div><b>Phone</b><span class="muted">${esc(ph)}</span></div></div><div class="info-item"><span class="gold">✉</span><div><b>Email</b><span class="muted">${esc(em)}</span></div></div><div class="info-item"><span class="gold">⌖</span><div><b>Locations</b><span class="muted">${esc(ad)}</span></div></div></div><div style="margin-top:28px">${button('WhatsApp enquiry ↗','whatsapp-demo')}</div><div style="background:var(--soft);border:1px solid var(--line);padding:28px;text-align:center;border-radius:12px;margin-top:22px;color:var(--muted)">⌖ &nbsp; Branch directions available on each branch page</div></div></div></div>`}
 function branchPage(id){const x=branch(id);return `<div class="shell"><div class="hero"><div><div class="eyebrow">THE GENT’S · ${esc(x.name.toUpperCase())}</div><h1>Your grooming destination in ${esc(x.name)}</h1><p>A refined space for precision cuts, expert grooming and excellent service.</p><p class="muted">⌖ ${esc(x.place)}<br>◷ ${esc(x.hours)}</p>${button('Book at this Branch →','book-branch:'+id,'btn btn-gold')} ${button('All Branches','go:home')}</div><img class="hero-photo" src="${x.photo}" alt="${esc(x.name)} branch"></div><div class="section-tight">${heading('THE TEAM','Our Barbers')}<div class="grid grid-4">${db.barbers.filter(b=>b.branch===id).map(barberCard).join('')}</div></div></div>`}
 function resetBooking(preset={}){booking={branch:'',service:'',barber:'',date:'',time:'',name:'',email:'',phone:'',...preset};bookingStep=preset.branch?(preset.barber?3:preset.service?2:1):0;page='booking';render()}
 const stepLabels=['Branch','Service','Barber','Date & Time','Details','Review'];
@@ -63,17 +74,17 @@ if(dashboardTab==='clients'){let clients=[...new Map(db.bookings.map(x=>[x.phone
 if(dashboardTab==='reports'){const total=f.length||1;return top+`<div class="stat-grid">${[['◉','1,284','Visitors (sample)'],['↗','3.8%','Booking rate (sample)'],['▢',f.length,'Actual bookings'],['✓',counts('Confirmed'),'Confirmed appointments']].map(([i,n,t])=>`<div class="stat"><div class="stat-icon">${i}</div><div class="number">${n}</div><div class="small">${t}</div></div>`).join('')}</div><div class="dash-grid"><div class="panel"><h3>Booking Status</h3>${['Pending','Confirmed','Cancelled','Completed'].map(x=>`<div class="progress-row"><span>${x}</span><div class="track"><div class="fill" style="width:${counts(x)/total*100}%"></div></div><b>${counts(x)}</b></div>`).join('')}</div><div class="panel"><h3>Source Breakdown</h3>${['Online','Walk-in'].map(x=>{let n=f.filter(b=>b.source===x).length;return `<div class="progress-row"><span>${x}</span><div class="track"><div class="fill" style="width:${n/total*100}%"></div></div><b>${n}</b></div>`}).join('')}<p class="small muted">Visitor figures above are illustrative; bookings reflect actual data.</p></div></div>`}
 return top+`<div class="panel" style="max-width:620px"><h3>Settings</h3><p class="muted">Theme, sample data and local state controls.</p><div class="auth-actions">${button('Toggle Theme','theme')}${button('Reset Sample Data','reset')}${button('Preview Website','go:home','btn btn-gold')}</div><p class="muted small" style="margin-top:25px">In production, SMTP, WhatsApp Business API, roles and SEO settings would be configured on the PHP/MySQL backend. This prototype makes no network changes.</p></div>`}
 function bookingTable(list,title,short){return `${short?`<div class="panel-head"><h3>${title}</h3>${button('View All','admin-tab:bookings','btn btn-sm')}</div>`:''}<div class="table-wrap"><table><thead><tr><th>Time</th><th>Client</th><th>Service</th><th>Barber</th><th>Branch</th><th>Status</th><th>Action</th></tr></thead><tbody>${list.map(b=>`<tr><td>${fmt(b.date)}<br><span class="muted">${esc(b.time)}</span></td><td>${esc(b.name)}</td><td>${esc(service(b.service).name)}</td><td>${esc(barber(b.barber).name)}</td><td>${esc(branch(b.branch).name)}</td><td>${badge(b.status)}</td><td>${b.status==='Pending'?`<div class="row-actions"><button class="btn btn-sm" data-action="approve:${b.id}">✓</button><button class="btn btn-sm" data-action="decline:${b.id}">×</button></div>`:button('View','view-booking:'+b.id,'btn btn-sm')}</td></tr>`).join('')}</tbody></table>${list.length?'':'<div class="empty">No bookings yet.</div>'}</div>`}
-function login(){return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class="shell" style="max-width:560px"><div class="page-panel" style="margin:60px auto"><div class="eyebrow">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style="margin:12px 0 6px">Sign In</h2><p class="muted">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id="login-form" data-role="${role}"><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" placeholder="you@example.com"></div><div class="form-group"><label class="form-label">Password</label><input class="field" type="password" required name="password" placeholder="Enter your password"></div><button class="btn btn-gold" type="submit" style="width:100%">Sign In →</button></form><p class="muted small" style="margin-top:20px;text-align:center">${admin?'Client? <a href="login.html" style="color:var(--gold)">Go to client login</a> · <a href="index.html" style="color:var(--gold)">Back to site</a>':'New here? <a href="booking.html" style="color:var(--gold)">Book an appointment</a>'}</p></div></div>`}function confirmPage(){return `<div class="shell" style="max-width:740px;text-align:center"><div class="section"><div style="display:inline-grid;place-items:center;background:var(--gold-soft);color:var(--gold);width:72px;height:72px;border-radius:50%;font-size:29px;margin-bottom:20px">✓</div><div class="eyebrow">REQUEST SUBMITTED</div><h1>Booking Request Received</h1><p class="muted">Your request has been sent to the branch receptionist for review. Notifications are simulated.</p><div class="page-panel" style="margin:25px auto;max-width:540px;text-align:left">${[['Booking reference',booking.id],['Branch',branch(booking.branch).name],['Service',service(booking.service).name],['Date',fmt(booking.date)],['Time',booking.time],['Status','Pending approval']].map(([k,v])=>`<div class="summary-row"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>${button('My Bookings','go:client','btn btn-gold')} ${button('Back to Home','go:home')}</div></div>`}
-function render(){let body;if(page.startsWith('branch:'))body=branchPage(page.slice(7));else body=({home,services,barbers,gallery,contact,booking:bookingPage,client,admin,login,confirmation:confirmPage})[page]?.()||home();document.getElementById('app').innerHTML=header()+`<div class="page">${body}</div>`+(page==='admin'||page==='client'?'':footer());document.title=`The Gent’s · ${page.charAt(0).toUpperCase()+page.slice(1)}`;document.querySelector('meta[name=theme-color]').content=dark?'#111111':'#ffffff';}
+function login(){return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class="shell" style="max-width:560px"><div class="page-panel" style="margin:60px auto"><div class="eyebrow">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style="margin:12px 0 6px">Sign In</h2><p class="muted">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id="login-form" data-role="${role}"><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" placeholder="you@example.com"></div><div class="form-group"><label class="form-label">Password</label><input class="field" type="password" required name="password" placeholder="Enter your password"></div><button class="btn btn-gold" type="submit" style="width:100%">Sign In →</button></form><p class="muted small" style="margin-top:20px;text-align:center">${admin?'Client? <a href="login.html" style="color:var(--gold)">Go to client login</a> · <a href="index.html" style="color:var(--gold)">Back to site</a>':'New here? <a href="booking.html" style="color:var(--gold)">Book an appointment</a> · <a href="#" data-action="cl-register" style="color:var(--gold)">Create account</a>'}</p></div></div>`}function confirmPage(){return `<div class="shell" style="max-width:740px;text-align:center"><div class="section"><div style="display:inline-grid;place-items:center;background:var(--gold-soft);color:var(--gold);width:72px;height:72px;border-radius:50%;font-size:29px;margin-bottom:20px">✓</div><div class="eyebrow">REQUEST SUBMITTED</div><h1>Booking Request Received</h1><p class="muted">Your request has been sent to the branch receptionist for review. Notifications are simulated.</p><div class="page-panel" style="margin:25px auto;max-width:540px;text-align:left">${[['Booking reference',booking.id],['Branch',branch(booking.branch).name],['Service',service(booking.service).name],['Date',fmt(booking.date)],['Time',booking.time],['Status','Pending approval']].map(([k,v])=>`<div class="summary-row"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>${button('My Bookings','go:client','btn btn-gold')} ${button('Back to Home','go:home')}</div></div>`}
+function render(){syncHero();let body;if(page.startsWith('branch:'))body=branchPage(page.slice(7));else body=({home,services,barbers,gallery,contact,booking:bookingPage,client,admin,login,confirmation:confirmPage})[page]?.()||home();document.getElementById('app').innerHTML=header()+`<div class="page">${body}</div>`+(page==='admin'||page==='client'?'':footer());document.title=`The Gent’s · ${page.charAt(0).toUpperCase()+page.slice(1)}`;document.querySelector('meta[name=theme-color]').content=dark?'#111111':'#ffffff';}
 function navigate(p){if(p.startsWith('branch:')){location.href='branch.html#'+p.slice(7);return}const f={home:'index.html',services:'services.html',barbers:'barbers.html',gallery:'gallery.html',contact:'contact.html',login:'login.html',booking:'booking.html',client:'client.html',admin:'admin.html',confirmation:'booking.html'}[p]||'index.html';const fp=(location.pathname.split('/').pop()||'index.html');if(f===fp){page=p;window.scrollTo({top:0,behavior:'instant'});render()}else location.href=f}
 function toast(message){document.getElementById('toast-root').innerHTML=`<div class="toast"><b>Notification</b><br>${esc(message)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>document.getElementById('toast-root').innerHTML='',3500)}
 function modal(title,content){document.getElementById('modal-root').innerHTML=`<div class="overlay" id="overlay"><div class="modal"><div class="modal-top"><h3>${title}</h3><button data-action="close-modal" class="icon-btn">×</button></div>${content}</div></div>`}
 function closeModal(){document.getElementById('modal-root').innerHTML=''}
 function showSlide(n){slideIndex=(n+heroSlides.length)%heroSlides.length;const slides=document.querySelectorAll('.hero-slide');slides.forEach((el,i)=>el.classList.toggle('active',i===slideIndex));document.querySelectorAll('.slider-dot').forEach((el,i)=>el.classList.toggle('active',i===slideIndex));const title=document.getElementById('slide-title'),desc=document.getElementById('slide-desc');if(title)title.innerHTML=heroSlides[slideIndex].title;if(desc)desc.textContent=heroSlides[slideIndex].desc;}
 setInterval(()=>{if(page==='home'&&!document.hidden)showSlide(slideIndex+1)},6500);
-function handle(action){let [cmd,...parts]=action.split(':'),val=parts.join(':');if(cmd==='slide')return showSlide(Number(val));if(cmd==='slide-next')return showSlide(slideIndex+1);if(cmd==='slide-prev')return showSlide(slideIndex-1);if(cmd==='go')return navigate(val);if(cmd==='theme'){dark=!dark;document.documentElement.classList.toggle('dark',dark);storage.setItem('gents_theme',dark?'dark':'light');render();return}if(cmd==='menu'){document.getElementById('links').classList.toggle('open');return}if(cmd==='start-booking'){try{sessionStorage.removeItem('gents_booking_preset')}catch(e){}location.href='booking.html';return};if(cmd==='open-branch')return navigate('branch:'+val);if(cmd==='book-branch'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:val}))}catch(e){}location.href='booking.html';return};if(cmd==='book-service'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({service:val}))}catch(e){}location.href='booking.html';return};if(cmd==='book-barber'){let b=barber(val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,barber:val}))}catch(e){}location.href='booking.html';return}if(cmd==='barber-filter'){barberFilter=val;return render()}if(cmd==='gallery-filter'){galleryFilter=val;return render()}if(cmd==='image'){return modal('Gallery',`<img style="width:100%;border-radius:10px" src="${val}" alt="Gallery preview">`)}if(cmd==='close-modal')return closeModal();if(cmd==='join-membership'){db.membership=true;save();toast('Membership interest recorded locally. No payment has been taken.');return render()}if(cmd==='whatsapp-demo'){window.open('https://wa.me/263776011938','_blank');return};
+function handle(action){let [cmd,...parts]=action.split(':'),val=parts.join(':');if(cmd==='slide')return showSlide(Number(val));if(cmd==='slide-next')return showSlide(slideIndex+1);if(cmd==='slide-prev')return showSlide(slideIndex-1);if(cmd==='go')return navigate(val);if(cmd==='theme'){dark=!dark;document.documentElement.classList.toggle('dark',dark);storage.setItem('gents_theme',dark?'dark':'light');render();return}if(cmd==='menu'){document.getElementById('links').classList.toggle('open');return}if(cmd==='start-booking'){try{sessionStorage.removeItem('gents_booking_preset')}catch(e){}location.href='booking.html';return};if(cmd==='open-branch')return navigate('branch:'+val);if(cmd==='book-branch'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:val}))}catch(e){}location.href='booking.html';return};if(cmd==='book-service'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({service:val}))}catch(e){}location.href='booking.html';return};if(cmd==='book-barber'){let b=barber(val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,barber:val}))}catch(e){}location.href='booking.html';return}if(cmd==='barber-filter'){barberFilter=val;return render()}if(cmd==='gallery-filter'){galleryFilter=val;return render()}if(cmd==='image'){return modal('Gallery',`<img style="width:100%;border-radius:10px" src="${val}" alt="Gallery preview">`)}if(cmd==='close-modal')return closeModal();if(cmd==='join-membership'){db.membership=true;save();toast('Membership interest recorded locally. No payment has been taken.');return render()}if(cmd==='whatsapp-demo'){const w=(db.settings&&db.settings.whatsapp)||'+263 77 601 1938';window.open('https://wa.me/'+w.replace(/[^0-9]/g,''),'_blank');return}
 if(cmd==='book-choose-branch'){booking.branch=val;booking.barber='';if(booking.service&&!service(booking.service).branches.includes(val))booking.service='';booking.date='';booking.time='';return render()}if(cmd==='book-choose-service'){booking.service=val;booking.barber='';booking.date='';booking.time='';return render()}if(cmd==='book-choose-barber'){booking.barber=val;booking.date='';booking.time='';return render()}if(cmd==='book-choose-date'){booking.date=val;booking.time='';return render()}if(cmd==='book-choose-time'){booking.time=val;return render()};if(cmd==='book-back'){bookingStep=Math.max(0,bookingStep-1);return render()}if(cmd==='book-next'){if(bookingStep===0&&!booking.branch||bookingStep===1&&!booking.service||bookingStep===2&&!booking.barber||bookingStep===3&&(!booking.date||!booking.time))return toast('Please make a selection before continuing.');if(bookingStep===4){booking.name=document.getElementById('bk-name').value.trim();booking.phone=document.getElementById('bk-phone').value.trim();booking.email=document.getElementById('bk-email').value.trim();booking.notes=document.getElementById('bk-notes').value.trim();if(!booking.name||!booking.phone||!/^\S+@\S+\.\S+$/.test(booking.email))return toast('Please enter a name, phone number and valid email.')}bookingStep++;return render()}
-if(cmd==='book-submit'){const assigned=booking.barber==='any'?(db.barbers.find(x=>x.branch===booking.branch&&x.services.includes(booking.service))||{}).id:booking.barber;if(!assigned)return toast('No available barber for this selection.');if(db.bookings.some(x=>x.branch===booking.branch&&x.barber===assigned&&x.date===booking.date&&x.time===booking.time&&['Pending','Confirmed'].includes(x.status)))return toast('This slot has just been taken. Please choose another.');booking.id='GT-'+(1050+db.bookings.length);db.bookings.push({...booking,barber:assigned,status:'Pending',source:'Online',clientCreated:true});db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);try{sessionStorage.setItem('gents_auth','client')}catch(e){}save();return navigate('confirmation')}
+if(cmd==='book-submit'){const assigned=booking.barber==='any'?(db.barbers.find(x=>x.branch===booking.branch&&x.services.includes(booking.service))||{}).id:booking.barber;if(!assigned)return toast('No available barber for this selection.');if(db.bookings.some(x=>x.branch===booking.branch&&x.barber===assigned&&x.date===booking.date&&x.time===booking.time&&['Pending','Confirmed'].includes(x.status)))return toast('This slot has just been taken. Please choose another.');booking.id='GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6);db.bookings.push({...booking,barber:assigned,status:'Pending',source:'Online',clientCreated:true,clientEmail:clEmail()});db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);try{sessionStorage.setItem('gents_auth','client')}catch(e){}save();return navigate('confirmation')}
 if(cmd==='admin-tab'){dashboardTab=val;return render()}if(cmd==='client-tab'){clientTab=val;return render()}if(cmd==='client-side'){if(val==='profile')return toast('Profile changes are not enabled yet.');return render()}
 if(cmd==='approve'||cmd==='decline'||cmd==='client-cancel'){let b=db.bookings.find(x=>x.id===val);if(!b)return;if(cmd==='client-cancel'&&!confirm('Cancel this booking?'))return;b.status=cmd==='approve'?'Confirmed':cmd==='decline'?'Declined':'Cancelled';db.notifications.unshift(`Booking ${b.id} ${b.status}. Email and WhatsApp confirmation simulated.`);save();toast(`Booking ${b.id} ${b.status.toLowerCase()}. Email and WhatsApp notices simulated.`);return render()}
 if(cmd==='view-booking'){let b=db.bookings.find(x=>x.id===val);return modal('Appointment '+esc(val),[['Customer',b.name],['Branch',branch(b.branch).name],['Service',service(b.service).name],['Barber',barber(b.barber).name],['Date & time',fmt(b.date)+' · '+b.time],['Status',b.status]].map(([k,v])=>`<div class="data-line"><span class="muted">${k}</span><b>${esc(v)}</b></div>`).join('')+(b.status==='Pending'?`<div class="auth-actions" style="margin-top:20px"><button class="btn btn-gold" data-action="approve:${b.id}">Approve</button><button class="btn" data-action="decline:${b.id}">Decline</button></div>`:''))}
@@ -83,7 +94,7 @@ if(cmd==='add-branch')return modal('Add Branch',`<form id="branch-form"><div cla
 if(cmd==='add-barber')return modal('Add Barber',`<form id="barber-form"><div class="form-group"><label class="form-label">Name</label><input name="name" required class="field" placeholder="Barber name"></div><div class="form-group"><label class="form-label">Branch</label><select name="branch" class="field">${db.branches.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><button class="btn btn-gold">Add Barber</button></form>`)
 if(cmd==='add-service')return modal('Add Service',`<form id="service-form"><div class="form-group"><label class="form-label">Service name</label><input class="field" required name="name"></div><div class="form-group"><label class="form-label">Price (USD)</label><input class="field" type="number" min="0" required name="price"></div><div class="form-group"><label class="form-label">Duration (minutes)</label><input class="field" type="number" min="5" required name="duration" value="30"></div><button class="btn btn-gold">Add Service</button></form>`)
 if(cmd==='edit-service'){let x=service(val);return modal('Edit Service',`<form id="edit-service-form"><input type="hidden" name="id" value="${esc(x.id)}"><div class="form-group"><label class="form-label">Name</label><input class="field" required name="name" value="${esc(x.name)}"></div><div class="form-group"><label class="form-label">Price</label><input class="field" type="number" min="0" required name="price" value="${x.price}"></div><button class="btn btn-gold">Save Changes</button></form>`)}
-if(cmd==='reset'){if(!confirm('Reset all data, bookings and changes?'))return;storage.removeItem(KEY);location.reload()}
+if(cmd==='reset'){if(!confirm('Reset all data, bookings and changes?'))return;fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json'},body:'{"__reset":true}',credentials:'same-origin'}).catch(()=>{}).finally(()=>{storage.removeItem(KEY);location.reload()});return}
 }
 document.addEventListener('click',e=>{let el=e.target.closest('[data-action],[data-page]');if(!el||el===document.body)return;if(el.dataset.action){e.preventDefault();handle(el.dataset.action)}else if(el.dataset.page){e.preventDefault();navigate(el.dataset.page)}});
 document.addEventListener('change',e=>{if(e.target.id==='admin-branch'){branchFilter=e.target.value;render()}});
@@ -101,7 +112,7 @@ const admF = () => {
 };
 
 function adminBody() {
-  const titles = { overview: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', clients: 'Clients', reports: 'Reports', users: 'User Management', staff: 'Staff Management', erp: 'Accounting & ERP', settings: 'Settings' };
+  const titles = { overview: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', content: 'Content & Media', clients: 'Clients', reports: 'Reports', users: 'User Management', staff: 'Staff Management', erp: 'Accounting & ERP', settings: 'Settings' };
   const f = branchFilter === 'all' ? db.bookings : db.bookings.filter(b => b.branch === branchFilter);
   const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">All changes are saved locally.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
   if (!admCan(dashboardTab)) return top + `<div class="panel"><p class="muted">You don’t have permission to access this section. Contact your administrator.</p></div>`;
@@ -111,6 +122,7 @@ function adminBody() {
   if (dashboardTab === 'branches') return admBranches(top);
   if (dashboardTab === 'barbers') return admBarbers(top);
   if (dashboardTab === 'services') return admServices(top);
+  if (dashboardTab === 'content') return admContent(top);
   if (dashboardTab === 'clients') return admClients(top);
   if (dashboardTab === 'reports') return admReports(f, top);
   if (dashboardTab === 'users') return admUsers(top);
@@ -122,7 +134,7 @@ function adminBody() {
 function dashboardFrame(role, content) {
   const admin = role === 'admin';
   const items = admin
-    ? [["overview", "Dashboard", "⌂"], ["bookings", "Bookings", "▢"], ["calendar", "Calendar", "▦"], ["branches", "Branches", "⌖"], ["barbers", "Barbers", "✂"], ["services", "Services", "✧"], ["clients", "Clients", "♧"], ["reports", "Reports", "▥"], ["users", "User Management", "♟"], ["staff", "Staff Management", "⚑"], ["erp", "Accounting & ERP", "¤"], ["settings", "Settings", "⚙"]]
+    ? [["overview", "Dashboard", "⌂"], ["bookings", "Bookings", "▢"], ["calendar", "Calendar", "▦"], ["branches", "Branches", "⌖"], ["barbers", "Barbers", "✂"], ["services", "Services", "✧"], ["content", "Content & Media", "◈"], ["clients", "Clients", "♧"], ["reports", "Reports", "▥"], ["users", "User Management", "♟"], ["staff", "Staff Management", "⚑"], ["erp", "Accounting & ERP", "¤"], ["settings", "Settings", "⚙"]]
     : [["overview", "Overview", "⌂"], ["bookings", "My Bookings", "▢"], ["rewards", "Rewards", "★"], ["notifications", "Alerts", "◔"], ["profile", "Profile", "♙"]];
   const selected = admin ? dashboardTab : (typeof clientView !== 'undefined' ? clientView : 'overview');
   const navItems = admin ? items.filter(([key]) => admCan(key)) : items;
@@ -202,24 +214,24 @@ function admBranchForm(id) {
 
 // ---------- Barbers ----------
 function admBarbers(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Team (${db.barbers.length})</h3><div class="auth-actions">${ioButtons('barbers', true)}${button('+ Add Barber', 'adm-add-barber', 'btn btn-gold btn-sm')}</div></div><div class="grid grid-4">${db.barbers.map(x => `<div class="card"><img class="barber-photo" src="${esc(x.photo)}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p><p class="small muted">${x.services.map(s => esc(service(s).name)).join(' · ')}</p><div class="row-actions" style="margin-top:8px"><button class="btn btn-sm" data-action="adm-edit-barber:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-barber:${x.id}">Delete</button></div></div></div>`).join('')}</div></div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Team (${db.barbers.length})</h3><div class="auth-actions">${ioButtons('barbers', true)}${button('+ Add Barber', 'adm-add-barber', 'btn btn-gold btn-sm')}</div></div><div class="grid grid-4">${db.barbers.map(x => `<div class="card"><img class="barber-photo" src="${esc(x.photo)}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p><p class="small muted">${x.services.map(s => esc(service(s).name)).join(' · ')}</p>${x.bio ? `<p class="small muted">${esc(x.bio)}</p>` : ''}<div class="row-actions" style="margin-top:8px"><button class="btn btn-sm" data-action="adm-edit-barber:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-barber:${x.id}">Delete</button></div></div></div>`).join('')}</div></div>`;
 }
 
 function admBarberForm(id) {
   const x = id ? barber(id) : { name: '', role: 'Barber', branch: db.branches[0] ? db.branches[0].id : '', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', services: db.services.map(s => s.id) };
   if (id && !db.barbers.find(b => b.id === id)) return;
-  modal(id ? 'Edit Barber' : 'Add Barber', `<form id="adm-barber-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Role</label><input class="field" name="role" value="${esc(id ? x.role : 'Barber')}"></div><div class="form-group"><label class="form-label">Branch</label><select class="field" name="branch">${db.branches.map(b => `<option value="${b.id}" ${x.branch === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Photo URL</label><input class="field" name="photo" value="${esc(x.photo || '')}"></div><div class="form-group"><label class="form-label">Services</label><div style="display:grid;gap:6px">${db.services.map(s => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="services" value="${s.id}" ${(x.services || []).includes(s.id) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Barber'}</button></form>`);
+  modal(id ? 'Edit Barber' : 'Add Barber', `<form id="adm-barber-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Role</label><input class="field" name="role" value="${esc(id ? x.role : 'Barber')}"></div><div class="form-group"><label class="form-label">Branch</label><select class="field" name="branch">${db.branches.map(b => `<option value="${b.id}" ${x.branch === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Photo URL</label><input class="field" name="photo" value="${esc(x.photo || '')}"></div><div class="form-group"><label class="form-label">Bio (shown on profile cards)</label><textarea class="field" name="bio" rows="2" placeholder="e.g. 8 years of precision cutting">${esc(x.bio || '')}</textarea></div><div class="form-group"><label class="form-label">Services</label><div style="display:grid;gap:6px">${db.services.map(s => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="services" value="${s.id}" ${(x.services || []).includes(s.id) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Barber'}</button></form>`);
 }
 
 // ---------- Services ----------
 function admServices(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Services & Pricing</h3><div class="auth-actions">${ioButtons('services', true)}${button('+ Add Service', 'adm-add-service', 'btn btn-gold btn-sm')}</div></div>${db.services.map(x => `<div class="service-row"><span class="service-icon">${x.icon}</span><div class="service-text"><strong>${esc(x.name)}</strong><small>${esc(x.desc || '')} · ${x.duration} min · ${x.branches.map(b => esc(branch(b).name)).join(', ') || 'all branches'}</small></div><b>${money(x.price)}</b><div class="row-actions"><button class="btn btn-sm" data-action="adm-edit-service:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-service:${x.id}">Delete</button></div></div>`).join('')}</div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Services & Pricing</h3><div class="auth-actions">${ioButtons('services', true)}${button('+ Add Service', 'adm-add-service', 'btn btn-gold btn-sm')}</div></div>${db.services.map(x => `<div class="service-row">${x.image ? `<img class="service-thumb" src="${esc(x.image)}" alt="">` : `<span class="service-icon">${x.icon}</span>`}<div class="service-text"><strong>${esc(x.name)}</strong><small>${esc(x.desc || '')} · ${x.duration} min · ${x.branches.map(b => esc(branch(b).name)).join(', ') || 'all branches'}</small></div><b>${money(x.price)}</b><div class="row-actions"><button class="btn btn-sm" data-action="adm-edit-service:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-service:${x.id}">Delete</button></div></div>`).join('')}</div>`;
 }
 
 function admServiceForm(id) {
   const x = id ? service(id) : { name: '', desc: '', price: 0, duration: 30, icon: '✂', branches: db.branches.map(b => b.id) };
   if (id && !db.services.find(s => s.id === id)) return;
-  modal(id ? 'Edit Service' : 'Add Service', `<form id="adm-service-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Service name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Icon</label><input class="field" name="icon" value="${esc(id ? x.icon : '✂')}"></div></div><div class="form-group"><label class="form-label">Description</label><input class="field" name="desc" value="${esc(id ? x.desc : '')}"></div><div class="form-grid"><div class="form-group"><label class="form-label">Price (USD)</label><input class="field" type="number" min="0" step="0.01" required name="price" value="${id ? x.price : ''}"></div><div class="form-group"><label class="form-label">Duration (minutes)</label><input class="field" type="number" min="5" required name="duration" value="${id ? x.duration : 30}"></div></div><div class="form-group"><label class="form-label">Available at branches</label><div style="display:grid;gap:6px">${db.branches.map(b => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="branches" value="${b.id}" ${(x.branches || []).includes(b.id) ? 'checked' : ''}> ${esc(b.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Service'}</button></form>`);
+  modal(id ? 'Edit Service' : 'Add Service', `<form id="adm-service-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Service name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Icon</label><input class="field" name="icon" value="${esc(id ? x.icon : '✂')}"></div></div><div class="form-group"><label class="form-label">Description</label><input class="field" name="desc" value="${esc(id ? x.desc : '')}"></div><div class="form-group"><label class="form-label">Card image URL (optional)</label><input class="field" name="image" value="${esc(id ? x.image || '' : '')}" placeholder="https://… or /uploads/…"></div><div class="form-grid"><div class="form-group"><label class="form-label">Price (USD)</label><input class="field" type="number" min="0" step="0.01" required name="price" value="${id ? x.price : ''}"></div><div class="form-group"><label class="form-label">Duration (minutes)</label><input class="field" type="number" min="5" required name="duration" value="${id ? x.duration : 30}"></div></div><div class="form-group"><label class="form-label">Available at branches</label><div style="display:grid;gap:6px">${db.branches.map(b => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="branches" value="${b.id}" ${(x.branches || []).includes(b.id) ? 'checked' : ''}> ${esc(b.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Service'}</button></form>`);
 }
 
 // ---------- Clients ----------
@@ -271,7 +283,7 @@ function admReports(f, top) {
 // ---------- Settings ----------
 function admSettings(top) {
   const s = db.settings || {};
-  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Salon name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div></div><button class="btn btn-gold">Save Settings</button></form>
+  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Salon name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">WhatsApp number</label><input class="field" name="whatsapp" value="${esc(s.whatsapp || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div></div><button class="btn btn-gold">Save Settings</button></form>
   <h3 style="margin-top:30px">Data</h3><div class="auth-actions">${button('Export Data (JSON)', 'adm-export-json', 'btn')}${button('Reset All Data', 'reset', 'btn')}</div><p class="muted small" style="margin-top:16px">Business details appear on the Contact page. Export downloads a backup of all local data.</p></div>`;
 }
 
@@ -297,7 +309,7 @@ function admExportJSON() {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
-  if (c === 'adm-logout') { try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = page === 'admin' ? 'admin.html' : 'login.html'; return; }
+  if (c === 'adm-logout') { try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_staff'); fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}', credentials: 'same-origin' }).catch(() => {}); } catch (x) {} location.href = page === 'admin' ? 'admin.html' : 'login.html'; return; }
   if (c === 'adm-add-branch') return admBranchForm();
   if (c === 'adm-edit-branch') return admBranchForm(v);
   if (c === 'adm-add-barber') return admBarberForm();
@@ -329,20 +341,35 @@ document.addEventListener('input', e => {
   }
 });
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
   const form = e.target;
   if (form.id === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
-    const fd = new FormData(form); const em = (fd.get('email') || '').trim().toLowerCase(); const pw = fd.get('password') || '';
-    if (form.dataset.role === 'admin') {
-      const s = staffAll().find(x => (x.email || '').toLowerCase() === em);
-      if (!s || s.password !== pw || s.status === 'suspended') { toast('Invalid admin credentials.'); return; }
-      try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', s.id) } catch (x) {}
-      location.href = 'admin.html'; return;
+    const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
+    const role = form.dataset.role === 'admin' ? 'admin' : 'client';
+    if (role === 'client') {
+      // Client login — verify against the PHP/MySQL clients table
+      try {
+        const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-login', email: em, password: pw }), credentials: 'same-origin' });
+        const j = await r.json();
+        if (j && j.ok) { try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = 'client.html'; return; }
+        if (r.status === 401) { toast('Invalid email or password.'); return; }
+      } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
     }
-    try { sessionStorage.setItem('gents_auth', 'client') } catch (x) {}
-    location.href = 'client.html';
-    return;
+    // Admin login — verify against the PHP/MySQL backend (falls back to local check offline)
+    try {
+      const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: em, password: pw }), credentials: 'same-origin' });
+      const j = await r.json();
+      if (j && j.ok) {
+        try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', j.staff && j.staff.id || '') } catch (x) {}
+        bootRemote(); location.href = 'admin.html'; return;
+      }
+      if (r.status === 401) { toast('Invalid admin credentials.'); return; }
+    } catch (x) { /* backend unreachable — fall through to local check */ }
+    const s = staffAll().find(x => (x.email || '').toLowerCase() === em.toLowerCase());
+    if (!s || s.password !== pw || s.status === 'suspended') { toast('Invalid admin credentials.'); return; }
+    try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', s.id) } catch (x) {}
+    location.href = 'admin.html'; return;
   }
   if (form.id === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
@@ -352,21 +379,21 @@ document.addEventListener('submit', e => {
   }
   if (form.id === 'adm-barber-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const sv = fd.getAll('services');
-    const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', services: sv.length ? sv : db.services.map(s => s.id) };
+    const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', bio: v.bio || '', services: sv.length ? sv : db.services.map(s => s.id) };
     if (v.id) { const x = db.barbers.find(b => b.id === v.id); if (x) Object.assign(x, data); toast('Barber updated.'); }
     else { db.barbers.push({ id: 'barber' + Date.now(), ...data }); toast('Barber added.'); }
     save(); closeModal(); render(); return;
   }
   if (form.id === 'adm-service-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const bv = fd.getAll('branches');
-    const data = { name: v.name, desc: v.desc || 'Grooming service', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
+    const data = { name: v.name, desc: v.desc || 'Grooming service', image: v.image || '', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
     if (v.id) { const x = db.services.find(s => s.id === v.id); if (x) Object.assign(x, data); toast('Service updated.'); }
     else { db.services.push({ id: 'srv' + Date.now(), ...data }); toast('Service added.'); }
     save(); closeModal(); render(); return;
   }
   if (form.id === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    db.settings = { name: v.name, phone: v.phone, email: v.email, address: v.address };
+    db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address };
     save(); toast('Settings saved.'); return;
   }
 });
@@ -377,7 +404,9 @@ document.addEventListener('submit', e => {
 
 let clientView = 'overview';
 const cp = () => db.clientProfile || (db.clientProfile = { name: 'T. Moyo', phone: '+263771234567', email: 'tmoyo@example.com', favBranch: '', favBarber: '' });
-const myBookings = () => db.bookings.filter(b => b.clientCreated || (cp().phone && b.phone === cp().phone));
+function clClient() { try { return JSON.parse(sessionStorage.getItem('gents_client') || 'null') } catch (e) { return null } }
+function clEmail() { const c = clClient(); return (c && c.email) || '' }
+const myBookings = () => { const em = clEmail(); return db.bookings.filter(b => em ? ((b.clientEmail && b.clientEmail === em) || (!b.clientEmail && cp().phone && b.phone === cp().phone)) : (b.clientCreated || (cp().phone && b.phone === cp().phone))) };
 const clPoints = list => (list || myBookings()).filter(b => b.status === 'Completed').length * 100;
 
 function client() {
@@ -450,20 +479,64 @@ function clNotifications(list) {
 // ---------- Profile ----------
 function clProfile(p) {
   return `<div class="dash-top"><div><div class="eyebrow">ACCOUNT</div><h1>Profile</h1><p class="muted">Your details are used for bookings and receipts.</p></div></div>
-  <div class="panel" style="max-width:640px"><form id="cl-profile-form"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(p.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" required name="phone" value="${esc(p.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(p.email || '')}"></div><div class="form-group"><label class="form-label">Favorite branch</label><select class="field" name="favBranch"><option value="">No preference</option>${db.branches.map(b => `<option value="${b.id}" ${p.favBranch === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Favorite barber</label><select class="field" name="favBarber"><option value="">No preference</option>${db.barbers.map(b => `<option value="${b.id}" ${p.favBarber === b.id ? 'selected' : ''}>${esc(b.name)} · ${esc(branch(b.branch).name)}</option>`).join('')}</select></div></div><button class="btn btn-gold">Save Profile</button></form><p class="muted small" style="margin-top:16px">Bookings are matched to your account by phone number.</p></div>`;
+  <div class="panel" style="max-width:640px"><form id="cl-profile-form"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(p.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" required name="phone" value="${esc(p.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(p.email || '')}"></div><div class="form-group"><label class="form-label">Favorite branch</label><select class="field" name="favBranch"><option value="">No preference</option>${db.branches.map(b => `<option value="${b.id}" ${p.favBranch === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Favorite barber</label><select class="field" name="favBarber"><option value="">No preference</option>${db.barbers.map(b => `<option value="${b.id}" ${p.favBarber === b.id ? 'selected' : ''}>${esc(b.name)} · ${esc(branch(b.branch).name)}</option>`).join('')}</select></div></div><button class="btn btn-gold">Save Profile</button></form><div class="auth-actions" style="margin-top:14px">${button('Sign Out','cl-logout','btn btn-sm')}</div><p class="muted small" style="margin-top:16px">Bookings are matched to your account by email and phone number.</p></div>`;
 }
+
+// ---------- Booking auth gate (sign in / register to finish booking) ----------
+let clAuthMode = 'login';
+function clAuthModal() {
+  const reg = clAuthMode === 'register';
+  modal('One quick step', `<p class="muted" style="margin-top:0">Sign in or create a free account to confirm your booking.</p>
+  <div class="segmented" style="margin-bottom:16px"><button class="pill ${!reg ? 'active' : ''}" data-action="cl-auth-mode:login">Sign In</button><button class="pill ${reg ? 'active' : ''}" data-action="cl-auth-mode:register">Create Account</button></div>
+  <form id="client-auth-form" data-mode="${clAuthMode}">
+    ${reg ? `<div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" placeholder="Your full name"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" placeholder="+263..."></div>` : ''}
+    <div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" placeholder="you@example.com"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="field" type="password" required name="password" minlength="6" placeholder="${reg ? 'Choose a password (6+ characters)' : 'Your password'}"></div>
+    <button class="btn btn-gold" type="submit" style="width:100%">${reg ? 'Create Account & Book →' : 'Sign In & Book →'}</button>
+  </form>
+  <p class="muted small" style="margin-top:14px;text-align:center">Your booking details are kept — you'll finish right after.</p>`);
+}
+// Intercept Submit Booking before the main handler when the visitor isn't signed in.
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action="book-submit"]');
+  if (el && !auth('client') && !auth('admin')) { e.preventDefault(); e.stopImmediatePropagation(); clAuthMode = 'login'; clAuthModal(); }
+}, true);
 
 // ---------- Events ----------
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
+  if (c === 'cl-auth-mode') { e.preventDefault(); e.stopImmediatePropagation(); clAuthMode = v; return clAuthModal(); }
+  if (c === 'cl-register') { e.preventDefault(); e.stopImmediatePropagation(); clAuthMode = 'register'; return clAuthModal(); }
+  if (c === 'cl-logout') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_client'); sessionStorage.removeItem('gents_staff'); fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}', credentials: 'same-origin' }).catch(() => {}); } catch (x) {}
+    location.href = 'login.html'; return;
+  }
   if (page !== 'client') return;
   if (c === 'client-side') { e.preventDefault(); e.stopImmediatePropagation(); clientView = v; render(); return; }
   if (c === 'cl-details') { e.stopImmediatePropagation(); return clDetails(v); }
 }, true);
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
   const form = e.target;
+  if (form.id === 'client-auth-form') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const v = Object.fromEntries(new FormData(form));
+    const btn = form.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
+    try {
+      const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: form.dataset.mode === 'register' ? 'client-register' : 'client-login', name: v.name, email: v.email, phone: v.phone, password: v.password }), credentials: 'same-origin' });
+      const j = await r.json();
+      if (j && j.ok) {
+        try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {}
+        closeModal(); toast('Welcome' + (j.client && j.client.name ? ', ' + j.client.name.split(' ')[0] : '') + '! Confirming your booking…');
+        handle('book-submit'); return;
+      }
+      if (r.status === 409) { clAuthMode = 'login'; clAuthModal(); toast('Account already exists — please sign in.'); return; }
+      toast((j && j.error === 'invalid credentials') ? 'Invalid email or password.' : ((j && j.error) || 'Sign-in failed — please try again.'));
+    } catch (x) { toast('Could not reach the server — check your connection.'); }
+    if (btn) btn.disabled = false; return;
+  }
   if (form.id !== 'cl-profile-form') return;
   e.preventDefault();
   const v = Object.fromEntries(new FormData(form));
@@ -483,14 +556,14 @@ const ERPTABS = [['overview', 'Overview'], ['transactions', 'Income & Expenses']
 // ---------- Permissions ----------
 const PERM_LABELS = {
   dashboard: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar',
-  branches: 'Branches', staff_data: 'Barbers & Services', clients: 'Clients',
-  reports: 'Reports', settings: 'Settings', usermgmt: 'User Management',
-  staffmgmt: 'Staff Management', erp: 'Accounting & ERP'
+  branches: 'Branches', staff_data: 'Barbers & Services', content: 'Content & Media',
+  clients: 'Clients', reports: 'Reports', settings: 'Settings',
+  usermgmt: 'User Management', staffmgmt: 'Staff Management', erp: 'Accounting & ERP'
 };
 const PERM_MAP = {
   overview: 'dashboard', bookings: 'bookings', calendar: 'calendar',
   branches: 'branches', barbers: 'staff_data', services: 'staff_data',
-  clients: 'clients', reports: 'reports', settings: 'settings',
+  content: 'content', clients: 'clients', reports: 'reports', settings: 'settings',
   users: 'usermgmt', staff: 'staffmgmt', erp: 'erp'
 };
 const STAFF_SEED = [{ id: 'admin1', username: 'Munyah', name: 'Munyah', email: 'munyah777@gmail.com', password: '@@Griezmann177#$', role: 'Super Admin', permissions: '*', protected: true, status: 'active', salary: 0, createdAt: '2026-01-01' }];
@@ -891,6 +964,170 @@ async function payslipPDF(p) {
   toast('Payslip PDF downloaded.');
 }
 
-document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form','login-form'].includes(form.id))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin.html':'client.html';return}if(form.id==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.id==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}if(form.id==='branch-form'){let id=v.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString().slice(-4);db.branches.push({id,name:v.name,place:v.place,photo:IM.salon,hours:'Mon–Sat · 09:00–18:00'});toast('New branch created.')}if(form.id==='barber-form'){db.barbers.push({id:'barber'+Date.now(),name:v.name,branch:v.branch,role:'Barber',photo:IM.barber1,services:db.services.map(x=>x.id)});toast('Barber added to the team.')}if(form.id==='service-form'){db.services.push({id:'srv'+Date.now(),name:v.name,desc:'Grooming service',icon:'✂',duration:Number(v.duration),price:Number(v.price),branches:db.branches.map(x=>x.id)});toast('Service added.')}if(form.id==='edit-service-form'){let s=service(v.id);s.name=v.name;s.price=Number(v.price);toast('Service updated.')}save();closeModal();render()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\/?/,''));if(!h){page='home';location.replace('index.html')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking.html'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}render();
+// ===== The Gent's — Content & Media =====
+// Injected inside app.js IIFE by _build.js. Adds the admin "Content & Media"
+// tab: hero banner slides and gallery images, stored in db.hero / db.gallery
+// and persisted through api/db.php like everything else.
+
+// ---------- Shared upload helper ----------
+async function ctUploadFile(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await fetch('api/upload.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+  const j = await r.json().catch(() => null);
+  if (!j || !j.ok) throw new Error((j && j.error) || 'Upload failed');
+  return j.url;
+}
+
+function ctMediaField(label, name, value, placeholder) {
+  return `<div class="form-group"><label class="form-label">${label}</label>
+    <input class="field" name="${name}" value="${esc(value || '')}" placeholder="${placeholder || 'https://… or /uploads/…'}">
+    <div class="ct-upload-row"><input type="file" id="ct-file-${name}" accept="image/*" data-target="${name}"><button type="button" class="btn btn-sm" data-action="ct-pick:${name}">Choose file</button><span class="small muted" id="ct-upstatus-${name}"></span></div>
+    <div class="ct-preview" id="ct-preview-${name}">${value ? `<img src="${esc(value)}" alt="">` : ''}</div></div>`;
+}
+
+// ---------- Hero banners ----------
+function heroPanel() {
+  const slides = db.hero && db.hero.length ? db.hero : HE;
+  return `<div class="panel"><div class="panel-head"><h3>Hero Banners (${slides.length})</h3><div class="auth-actions">${button('+ Add Slide', 'ct-hero-add', 'btn btn-gold btn-sm')}</div></div>
+  <p class="muted small" style="margin-top:0">Slides appear in order on the homepage hero. The first slide shows on load.</p>
+  <div class="ct-hero-list">${slides.map((s, i) => `<div class="ct-hero-item">
+    <div class="ct-hero-img" style="background-image:url('${esc(s.photo || '')}')"></div>
+    <div class="ct-hero-info"><strong>${esc(s.title || '(untitled)')}</strong><small class="muted">${esc(s.desc || '')}</small><small class="muted">Slide ${i + 1}</small></div>
+    <div class="row-actions"><button class="btn btn-sm" data-action="ct-hero-up:${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn btn-sm" data-action="ct-hero-down:${i}" ${i === slides.length - 1 ? 'disabled' : ''}>↓</button><button class="btn btn-sm" data-action="ct-hero-edit:${i}">Edit</button><button class="btn btn-sm" data-action="ct-hero-del:${i}">Del</button></div>
+  </div>`).join('')}</div></div>`;
+}
+
+function ctHeroForm(i) {
+  const s = i >= 0 ? (db.hero || [])[i] : null;
+  if (i >= 0 && !s) return;
+  modal(i >= 0 ? 'Edit Hero Slide' : 'Add Hero Slide', `<form id="ct-hero-form"><input type="hidden" name="idx" value="${i}">
+  <div class="form-group"><label class="form-label">Title</label><input class="field" required name="title" value="${esc(s ? s.title : '')}" placeholder="e.g. Made for the Modern Gent."></div>
+  <div class="form-group"><label class="form-label">Subtitle / description</label><input class="field" name="desc" value="${esc(s ? s.desc : '')}"></div>
+  ${ctMediaField('Banner image', 'photo', s ? s.photo : '', 'https://… or /uploads/…')}
+  <button class="btn btn-gold">${i >= 0 ? 'Save Changes' : 'Add Slide'}</button></form>`);
+}
+
+// ---------- Gallery ----------
+function galleryPanel() {
+  const items = db.gallery && db.gallery.length ? db.gallery : GE;
+  const cats = [...new Set(items.map(x => x.category).filter(Boolean))];
+  return `<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>Gallery (${items.length})</h3><div class="auth-actions">${button('+ Add Image', 'ct-gal-add', 'btn btn-gold btn-sm')}</div></div>
+  <p class="muted small" style="margin-top:0">Categories: ${cats.map(c => `<span class="badge status confirmed" style="margin-right:4px">${esc(c)}</span>`).join('') || '—'}</p>
+  <div class="ct-gal-grid">${items.map((g, i) => `<div class="ct-gal-item">
+    <img src="${esc(g.url)}" alt="${esc(g.alt || '')}" loading="lazy">
+    <div class="ct-gal-info"><strong>${esc(g.alt || '(no caption)')}</strong><small class="muted">${esc(g.category || 'Uncategorised')}</small></div>
+    <div class="row-actions"><button class="btn btn-sm" data-action="ct-gal-edit:${i}">Edit</button><button class="btn btn-sm" data-action="ct-gal-del:${i}">Delete</button></div>
+  </div>`).join('')}</div></div>`;
+}
+
+function ctGalleryForm(i) {
+  const g = i >= 0 ? (db.gallery || [])[i] : null;
+  if (i >= 0 && !g) return;
+  const cats = [...new Set(((db.gallery && db.gallery.length ? db.gallery : GE).map(x => x.category).filter(Boolean)))];
+  modal(i >= 0 ? 'Edit Gallery Image' : 'Add Gallery Image', `<form id="ct-gal-form"><input type="hidden" name="idx" value="${i}">
+  ${ctMediaField('Image', 'url', g ? g.url : '', 'https://… or /uploads/…')}
+  <div class="form-group"><label class="form-label">Caption / alt text</label><input class="field" name="alt" value="${esc(g ? g.alt : '')}" placeholder="e.g. Barbershop interior"></div>
+  <div class="form-group"><label class="form-label">Category</label><input class="field" name="category" list="ct-cats" value="${esc(g ? g.category : 'Salon')}" placeholder="Salon"><datalist id="ct-cats">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+  <button class="btn btn-gold">${i >= 0 ? 'Save Changes' : 'Add Image'}</button></form>`);
+}
+
+// Where an image URL is also used (for delete warnings)
+function ctInUse(url) {
+  const uses = [];
+  (db.barbers || []).forEach(b => { if (b.photo === url) uses.push('barber photo: ' + b.name); });
+  (db.branches || []).forEach(b => { if (b.photo === url) uses.push('branch photo: ' + b.name); });
+  (db.services || []).forEach(s => { if (s.image === url) uses.push('service image: ' + s.name); });
+  (db.hero || []).forEach((s, i) => { if (s.photo === url) uses.push('hero slide ' + (i + 1)); });
+  return uses;
+}
+
+// ---------- Events ----------
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-action]'); if (!el) return;
+  const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
+  if (c === 'ct-pick') {
+    e.preventDefault();
+    const inp = document.getElementById('ct-file-' + v);
+    if (inp) inp.click();
+    return;
+  }
+  if (c === 'ct-hero-add') return ctHeroForm(-1);
+  if (c === 'ct-hero-edit') return ctHeroForm(Number(v));
+  if (c === 'ct-hero-del') {
+    const s = (db.hero || [])[Number(v)]; if (!s) return;
+    if (!confirm('Delete this hero slide?')) return;
+    db.hero.splice(Number(v), 1); if (!db.hero.length) db.hero = HE.map(x => ({ ...x }));
+    save(); toast('Slide deleted.'); render(); return;
+  }
+  if (c === 'ct-hero-up' || c === 'ct-hero-down') {
+    const i = Number(v), d = c === 'ct-hero-up' ? -1 : 1, j = i + d;
+    if (!db.hero || j < 0 || j >= db.hero.length) return;
+    [db.hero[i], db.hero[j]] = [db.hero[j], db.hero[i]];
+    save(); render(); return;
+  }
+  if (c === 'ct-gal-add') return ctGalleryForm(-1);
+  if (c === 'ct-gal-edit') return ctGalleryForm(Number(v));
+  if (c === 'ct-gal-del') {
+    const g = (db.gallery || [])[Number(v)]; if (!g) return;
+    const uses = ctInUse(g.url);
+    if (uses.length && !confirm('This image is also used as ' + uses.join(', ') + '. Delete from gallery anyway?')) return;
+    if (!confirm('Delete this gallery image?')) return;
+    db.gallery.splice(Number(v), 1); if (!db.gallery.length) db.gallery = GE.map(x => ({ ...x }));
+    save(); toast('Image deleted.'); render(); return;
+  }
+});
+
+// File chosen → upload → fill the URL field + preview
+document.addEventListener('change', async e => {
+  const inp = e.target;
+  if (!inp.id || !inp.id.startsWith('ct-file-') || !inp.files || !inp.files[0]) return;
+  const name = inp.dataset.target || inp.id.slice(8);
+  const status = document.getElementById('ct-upstatus-' + name);
+  const urlInput = document.querySelector(`[name="${name}"]`);
+  const preview = document.getElementById('ct-preview-' + name);
+  try {
+    if (status) status.textContent = 'Uploading…';
+    const url = await ctUploadFile(inp.files[0]);
+    if (urlInput) urlInput.value = url;
+    if (preview) preview.innerHTML = `<img src="${esc(url)}" alt="">`;
+    if (status) status.textContent = 'Uploaded ✓';
+    toast('Image uploaded.');
+  } catch (err) {
+    if (status) status.textContent = err.message || 'Upload failed';
+    toast('Upload failed: ' + (err.message || 'server error'));
+  }
+});
+
+// Live preview while typing/pasting a URL
+document.addEventListener('input', e => {
+  const inp = e.target;
+  if (!inp.name || (inp.name !== 'photo' && inp.name !== 'url' && inp.name !== 'image')) return;
+  const preview = document.getElementById('ct-preview-' + inp.name);
+  if (preview) preview.innerHTML = inp.value ? `<img src="${esc(inp.value)}" alt="">` : '';
+});
+
+document.addEventListener('submit', e => {
+  const form = e.target;
+  if (form.id === 'ct-hero-form') {
+    e.preventDefault(); const v = Object.fromEntries(new FormData(form));
+    const item = { id: 'hero' + Date.now(), title: v.title, desc: v.desc || '', photo: v.photo || '' };
+    const i = Number(v.idx);
+    if (i >= 0 && db.hero && db.hero[i]) { const old = db.hero[i]; item.id = old.id || item.id; db.hero[i] = item; }
+    else { if (!Array.isArray(db.hero)) db.hero = []; db.hero.push(item); }
+    save(); closeModal(); toast('Hero slide saved.'); render(); return;
+  }
+  if (form.id === 'ct-gal-form') {
+    e.preventDefault(); const v = Object.fromEntries(new FormData(form));
+    if (!v.url) { toast('Image URL is required.'); return; }
+    const item = { id: 'gal' + Date.now(), url: v.url, alt: v.alt || '', category: v.category || 'Salon' };
+    const i = Number(v.idx);
+    if (i >= 0 && db.gallery && db.gallery[i]) { const old = db.gallery[i]; item.id = old.id || item.id; db.gallery[i] = item; }
+    else { if (!Array.isArray(db.gallery)) db.gallery = []; db.gallery.push(item); }
+    save(); closeModal(); toast('Gallery image saved.'); render(); return;
+  }
+});
+
+document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form','login-form'].includes(form.id))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin.html':'client.html';return}if(form.id==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.id==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}if(form.id==='branch-form'){let id=v.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString().slice(-4);db.branches.push({id,name:v.name,place:v.place,photo:IM.salon,hours:'Mon–Sat · 09:00–18:00'});toast('New branch created.')}if(form.id==='barber-form'){db.barbers.push({id:'barber'+Date.now(),name:v.name,branch:v.branch,role:'Barber',photo:IM.barber1,services:db.services.map(x=>x.id)});toast('Barber added to the team.')}if(form.id==='service-form'){db.services.push({id:'srv'+Date.now(),name:v.name,desc:'Grooming service',icon:'✂',duration:Number(v.duration),price:Number(v.price),branches:db.branches.map(x=>x.id)});toast('Service added.')}if(form.id==='edit-service-form'){let s=service(v.id);s.name=v.name;s.price=Number(v.price);toast('Service updated.')}save();closeModal();render()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\/?/,''));if(!h){page='home';location.replace('index.html')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking.html'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}bootRemote();render();
 })();

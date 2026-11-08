@@ -30,6 +30,7 @@ DROP TABLE IF EXISTS branches;
 DROP TABLE IF EXISTS clients;
 DROP TABLE IF EXISTS settings;
 DROP TABLE IF EXISTS admin_users;
+DROP TABLE IF EXISTS site_data;
 
 -- =====================================================================
 --  ADMIN ACCOUNTS
@@ -260,6 +261,19 @@ CREATE TABLE settings (
 INSERT INTO settings (id, salon_name, phone, email, address) VALUES
 (1, 'The Gent''s', '+263 77 601 1938', 'admin@thegents.co.zw',
  'Fife Avenue & Borrowdale, Harare');
+
+-- =====================================================================
+--  SITE DATA (live application state)
+--  The web app stores its whole state document here via api/db.php.
+--  The relational tables above document the domain model; site_data is
+--  the authoritative store used by the running application.
+-- =====================================================================
+CREATE TABLE site_data (
+  id         TINYINT UNSIGNED PRIMARY KEY DEFAULT 1,
+  payload    MEDIUMTEXT NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT chk_site_data_singleton CHECK (id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

@@ -30,14 +30,18 @@
   .step-num{width:30px;height:30px;font-size:12px}
   .slider-bottom{flex-wrap:wrap;gap:10px;left:24px;right:20px}
   .slider-arrows{margin-left:auto}
+  /* Mobile hero: stack content + controls in flow so they can never overlap */
+  .slider-hero{flex-direction:column;justify-content:center}
+  .slider-content{padding:58px 20px 24px}
+  .slider-bottom{position:static;width:100%;margin-top:20px;padding:0 20px 22px}
   .overlay{padding:12px}
   .modal{padding:20px;border-radius:13px}
   .io-bar .btn{font-size:11px;padding:7px 10px}
   .dash-mobile{scrollbar-width:none}
   .dash-mobile::-webkit-scrollbar{display:none}
   .dash-mobile button{white-space:nowrap}
-  .footer{padding:34px 0 26px}
-  .footer-inner{gap:14px}
+  .footer{padding:36px 0 24px}
+  .footer-grid{gap:24px}
   .btn{min-height:42px}
   .icon-btn{min-width:42px;min-height:42px}
   .cal-day{min-height:62px}
@@ -45,6 +49,15 @@
   .booking-wrap{padding:0}
   .empty{padding:26px 16px}
   .appointment{row-gap:10px}
+  /* Clean mobile header: hamburger left, Book Now right — nothing else */
+  .nav .shell{justify-content:flex-start;gap:12px}
+  .nav-actions{margin-left:auto;gap:8px}
+  .nav-actions [data-action="theme"],.nav-actions [data-page="login"]{display:none}
+  .menu-toggle{display:block}
+  /* Home "Meet the Team" — swipeable carousel on mobile only */
+  .barber-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;margin-left:-18px;margin-right:-18px;padding:0 18px 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .barber-row::-webkit-scrollbar{display:none}
+  .barber-row>*{flex:0 0 74%;scroll-snap-align:start;min-width:0}
 }
 @media(max-width:480px){
   .stat .number{font-size:21px}

@@ -10,14 +10,14 @@ const ERPTABS = [['overview', 'Overview'], ['transactions', 'Income & Expenses']
 // ---------- Permissions ----------
 const PERM_LABELS = {
   dashboard: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar',
-  branches: 'Branches', staff_data: 'Barbers & Services', clients: 'Clients',
-  reports: 'Reports', settings: 'Settings', usermgmt: 'User Management',
-  staffmgmt: 'Staff Management', erp: 'Accounting & ERP'
+  branches: 'Branches', staff_data: 'Barbers & Services', content: 'Content & Media',
+  clients: 'Clients', reports: 'Reports', settings: 'Settings',
+  usermgmt: 'User Management', staffmgmt: 'Staff Management', erp: 'Accounting & ERP'
 };
 const PERM_MAP = {
   overview: 'dashboard', bookings: 'bookings', calendar: 'calendar',
   branches: 'branches', barbers: 'staff_data', services: 'staff_data',
-  clients: 'clients', reports: 'reports', settings: 'settings',
+  content: 'content', clients: 'clients', reports: 'reports', settings: 'settings',
   users: 'usermgmt', staff: 'staffmgmt', erp: 'erp'
 };
 const STAFF_SEED = [{ id: 'admin1', username: 'Munyah', name: 'Munyah', email: 'munyah777@gmail.com', password: '@@Griezmann177#$', role: 'Super Admin', permissions: '*', protected: true, status: 'active', salary: 0, createdAt: '2026-01-01' }];

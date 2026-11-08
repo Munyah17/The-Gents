@@ -12,7 +12,7 @@ const admF = () => {
 };
 
 function adminBody() {
-  const titles = { overview: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', clients: 'Clients', reports: 'Reports', users: 'User Management', staff: 'Staff Management', erp: 'Accounting & ERP', settings: 'Settings' };
+  const titles = { overview: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', content: 'Content & Media', clients: 'Clients', reports: 'Reports', users: 'User Management', staff: 'Staff Management', erp: 'Accounting & ERP', settings: 'Settings' };
   const f = branchFilter === 'all' ? db.bookings : db.bookings.filter(b => b.branch === branchFilter);
   const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">All changes are saved locally.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
   if (!admCan(dashboardTab)) return top + `<div class="panel"><p class="muted">You don’t have permission to access this section. Contact your administrator.</p></div>`;
@@ -22,6 +22,7 @@ function adminBody() {
   if (dashboardTab === 'branches') return admBranches(top);
   if (dashboardTab === 'barbers') return admBarbers(top);
   if (dashboardTab === 'services') return admServices(top);
+  if (dashboardTab === 'content') return admContent(top);
   if (dashboardTab === 'clients') return admClients(top);
   if (dashboardTab === 'reports') return admReports(f, top);
   if (dashboardTab === 'users') return admUsers(top);
@@ -33,7 +34,7 @@ function adminBody() {
 function dashboardFrame(role, content) {
   const admin = role === 'admin';
   const items = admin
-    ? [["overview", "Dashboard", "⌂"], ["bookings", "Bookings", "▢"], ["calendar", "Calendar", "▦"], ["branches", "Branches", "⌖"], ["barbers", "Barbers", "✂"], ["services", "Services", "✧"], ["clients", "Clients", "♧"], ["reports", "Reports", "▥"], ["users", "User Management", "♟"], ["staff", "Staff Management", "⚑"], ["erp", "Accounting & ERP", "¤"], ["settings", "Settings", "⚙"]]
+    ? [["overview", "Dashboard", "⌂"], ["bookings", "Bookings", "▢"], ["calendar", "Calendar", "▦"], ["branches", "Branches", "⌖"], ["barbers", "Barbers", "✂"], ["services", "Services", "✧"], ["content", "Content & Media", "◈"], ["clients", "Clients", "♧"], ["reports", "Reports", "▥"], ["users", "User Management", "♟"], ["staff", "Staff Management", "⚑"], ["erp", "Accounting & ERP", "¤"], ["settings", "Settings", "⚙"]]
     : [["overview", "Overview", "⌂"], ["bookings", "My Bookings", "▢"], ["rewards", "Rewards", "★"], ["notifications", "Alerts", "◔"], ["profile", "Profile", "♙"]];
   const selected = admin ? dashboardTab : (typeof clientView !== 'undefined' ? clientView : 'overview');
   const navItems = admin ? items.filter(([key]) => admCan(key)) : items;
@@ -113,24 +114,24 @@ function admBranchForm(id) {
 
 // ---------- Barbers ----------
 function admBarbers(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Team (${db.barbers.length})</h3><div class="auth-actions">${ioButtons('barbers', true)}${button('+ Add Barber', 'adm-add-barber', 'btn btn-gold btn-sm')}</div></div><div class="grid grid-4">${db.barbers.map(x => `<div class="card"><img class="barber-photo" src="${esc(x.photo)}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p><p class="small muted">${x.services.map(s => esc(service(s).name)).join(' · ')}</p><div class="row-actions" style="margin-top:8px"><button class="btn btn-sm" data-action="adm-edit-barber:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-barber:${x.id}">Delete</button></div></div></div>`).join('')}</div></div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Team (${db.barbers.length})</h3><div class="auth-actions">${ioButtons('barbers', true)}${button('+ Add Barber', 'adm-add-barber', 'btn btn-gold btn-sm')}</div></div><div class="grid grid-4">${db.barbers.map(x => `<div class="card"><img class="barber-photo" src="${esc(x.photo)}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p><p class="small muted">${x.services.map(s => esc(service(s).name)).join(' · ')}</p>${x.bio ? `<p class="small muted">${esc(x.bio)}</p>` : ''}<div class="row-actions" style="margin-top:8px"><button class="btn btn-sm" data-action="adm-edit-barber:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-barber:${x.id}">Delete</button></div></div></div>`).join('')}</div></div>`;
 }
 
 function admBarberForm(id) {
   const x = id ? barber(id) : { name: '', role: 'Barber', branch: db.branches[0] ? db.branches[0].id : '', photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', services: db.services.map(s => s.id) };
   if (id && !db.barbers.find(b => b.id === id)) return;
-  modal(id ? 'Edit Barber' : 'Add Barber', `<form id="adm-barber-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Role</label><input class="field" name="role" value="${esc(id ? x.role : 'Barber')}"></div><div class="form-group"><label class="form-label">Branch</label><select class="field" name="branch">${db.branches.map(b => `<option value="${b.id}" ${x.branch === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Photo URL</label><input class="field" name="photo" value="${esc(x.photo || '')}"></div><div class="form-group"><label class="form-label">Services</label><div style="display:grid;gap:6px">${db.services.map(s => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="services" value="${s.id}" ${(x.services || []).includes(s.id) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Barber'}</button></form>`);
+  modal(id ? 'Edit Barber' : 'Add Barber', `<form id="adm-barber-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Role</label><input class="field" name="role" value="${esc(id ? x.role : 'Barber')}"></div><div class="form-group"><label class="form-label">Branch</label><select class="field" name="branch">${db.branches.map(b => `<option value="${b.id}" ${x.branch === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Photo URL</label><input class="field" name="photo" value="${esc(x.photo || '')}"></div><div class="form-group"><label class="form-label">Bio (shown on profile cards)</label><textarea class="field" name="bio" rows="2" placeholder="e.g. 8 years of precision cutting">${esc(x.bio || '')}</textarea></div><div class="form-group"><label class="form-label">Services</label><div style="display:grid;gap:6px">${db.services.map(s => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="services" value="${s.id}" ${(x.services || []).includes(s.id) ? 'checked' : ''}> ${esc(s.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Barber'}</button></form>`);
 }
 
 // ---------- Services ----------
 function admServices(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Services & Pricing</h3><div class="auth-actions">${ioButtons('services', true)}${button('+ Add Service', 'adm-add-service', 'btn btn-gold btn-sm')}</div></div>${db.services.map(x => `<div class="service-row"><span class="service-icon">${x.icon}</span><div class="service-text"><strong>${esc(x.name)}</strong><small>${esc(x.desc || '')} · ${x.duration} min · ${x.branches.map(b => esc(branch(b).name)).join(', ') || 'all branches'}</small></div><b>${money(x.price)}</b><div class="row-actions"><button class="btn btn-sm" data-action="adm-edit-service:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-service:${x.id}">Delete</button></div></div>`).join('')}</div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Services & Pricing</h3><div class="auth-actions">${ioButtons('services', true)}${button('+ Add Service', 'adm-add-service', 'btn btn-gold btn-sm')}</div></div>${db.services.map(x => `<div class="service-row">${x.image ? `<img class="service-thumb" src="${esc(x.image)}" alt="">` : `<span class="service-icon">${x.icon}</span>`}<div class="service-text"><strong>${esc(x.name)}</strong><small>${esc(x.desc || '')} · ${x.duration} min · ${x.branches.map(b => esc(branch(b).name)).join(', ') || 'all branches'}</small></div><b>${money(x.price)}</b><div class="row-actions"><button class="btn btn-sm" data-action="adm-edit-service:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-service:${x.id}">Delete</button></div></div>`).join('')}</div>`;
 }
 
 function admServiceForm(id) {
   const x = id ? service(id) : { name: '', desc: '', price: 0, duration: 30, icon: '✂', branches: db.branches.map(b => b.id) };
   if (id && !db.services.find(s => s.id === id)) return;
-  modal(id ? 'Edit Service' : 'Add Service', `<form id="adm-service-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Service name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Icon</label><input class="field" name="icon" value="${esc(id ? x.icon : '✂')}"></div></div><div class="form-group"><label class="form-label">Description</label><input class="field" name="desc" value="${esc(id ? x.desc : '')}"></div><div class="form-grid"><div class="form-group"><label class="form-label">Price (USD)</label><input class="field" type="number" min="0" step="0.01" required name="price" value="${id ? x.price : ''}"></div><div class="form-group"><label class="form-label">Duration (minutes)</label><input class="field" type="number" min="5" required name="duration" value="${id ? x.duration : 30}"></div></div><div class="form-group"><label class="form-label">Available at branches</label><div style="display:grid;gap:6px">${db.branches.map(b => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="branches" value="${b.id}" ${(x.branches || []).includes(b.id) ? 'checked' : ''}> ${esc(b.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Service'}</button></form>`);
+  modal(id ? 'Edit Service' : 'Add Service', `<form id="adm-service-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Service name</label><input class="field" required name="name" value="${esc(id ? x.name : '')}"></div><div class="form-group"><label class="form-label">Icon</label><input class="field" name="icon" value="${esc(id ? x.icon : '✂')}"></div></div><div class="form-group"><label class="form-label">Description</label><input class="field" name="desc" value="${esc(id ? x.desc : '')}"></div><div class="form-group"><label class="form-label">Card image URL (optional)</label><input class="field" name="image" value="${esc(id ? x.image || '' : '')}" placeholder="https://… or /uploads/…"></div><div class="form-grid"><div class="form-group"><label class="form-label">Price (USD)</label><input class="field" type="number" min="0" step="0.01" required name="price" value="${id ? x.price : ''}"></div><div class="form-group"><label class="form-label">Duration (minutes)</label><input class="field" type="number" min="5" required name="duration" value="${id ? x.duration : 30}"></div></div><div class="form-group"><label class="form-label">Available at branches</label><div style="display:grid;gap:6px">${db.branches.map(b => `<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="branches" value="${b.id}" ${(x.branches || []).includes(b.id) ? 'checked' : ''}> ${esc(b.name)}</label>`).join('')}</div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Service'}</button></form>`);
 }
 
 // ---------- Clients ----------
@@ -182,7 +183,7 @@ function admReports(f, top) {
 // ---------- Settings ----------
 function admSettings(top) {
   const s = db.settings || {};
-  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Salon name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div></div><button class="btn btn-gold">Save Settings</button></form>
+  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Salon name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">WhatsApp number</label><input class="field" name="whatsapp" value="${esc(s.whatsapp || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div></div><button class="btn btn-gold">Save Settings</button></form>
   <h3 style="margin-top:30px">Data</h3><div class="auth-actions">${button('Export Data (JSON)', 'adm-export-json', 'btn')}${button('Reset All Data', 'reset', 'btn')}</div><p class="muted small" style="margin-top:16px">Business details appear on the Contact page. Export downloads a backup of all local data.</p></div>`;
 }
 
@@ -208,7 +209,7 @@ function admExportJSON() {
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
-  if (c === 'adm-logout') { try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = page === 'admin' ? 'admin.html' : 'login.html'; return; }
+  if (c === 'adm-logout') { try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_staff'); fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}', credentials: 'same-origin' }).catch(() => {}); } catch (x) {} location.href = page === 'admin' ? 'admin.html' : 'login.html'; return; }
   if (c === 'adm-add-branch') return admBranchForm();
   if (c === 'adm-edit-branch') return admBranchForm(v);
   if (c === 'adm-add-barber') return admBarberForm();
@@ -240,20 +241,35 @@ document.addEventListener('input', e => {
   }
 });
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
   const form = e.target;
   if (form.id === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
-    const fd = new FormData(form); const em = (fd.get('email') || '').trim().toLowerCase(); const pw = fd.get('password') || '';
-    if (form.dataset.role === 'admin') {
-      const s = staffAll().find(x => (x.email || '').toLowerCase() === em);
-      if (!s || s.password !== pw || s.status === 'suspended') { toast('Invalid admin credentials.'); return; }
-      try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', s.id) } catch (x) {}
-      location.href = 'admin.html'; return;
+    const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
+    const role = form.dataset.role === 'admin' ? 'admin' : 'client';
+    if (role === 'client') {
+      // Client login — verify against the PHP/MySQL clients table
+      try {
+        const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-login', email: em, password: pw }), credentials: 'same-origin' });
+        const j = await r.json();
+        if (j && j.ok) { try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = 'client.html'; return; }
+        if (r.status === 401) { toast('Invalid email or password.'); return; }
+      } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
     }
-    try { sessionStorage.setItem('gents_auth', 'client') } catch (x) {}
-    location.href = 'client.html';
-    return;
+    // Admin login — verify against the PHP/MySQL backend (falls back to local check offline)
+    try {
+      const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: em, password: pw }), credentials: 'same-origin' });
+      const j = await r.json();
+      if (j && j.ok) {
+        try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', j.staff && j.staff.id || '') } catch (x) {}
+        bootRemote(); location.href = 'admin.html'; return;
+      }
+      if (r.status === 401) { toast('Invalid admin credentials.'); return; }
+    } catch (x) { /* backend unreachable — fall through to local check */ }
+    const s = staffAll().find(x => (x.email || '').toLowerCase() === em.toLowerCase());
+    if (!s || s.password !== pw || s.status === 'suspended') { toast('Invalid admin credentials.'); return; }
+    try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', s.id) } catch (x) {}
+    location.href = 'admin.html'; return;
   }
   if (form.id === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
@@ -263,21 +279,21 @@ document.addEventListener('submit', e => {
   }
   if (form.id === 'adm-barber-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const sv = fd.getAll('services');
-    const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', services: sv.length ? sv : db.services.map(s => s.id) };
+    const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', bio: v.bio || '', services: sv.length ? sv : db.services.map(s => s.id) };
     if (v.id) { const x = db.barbers.find(b => b.id === v.id); if (x) Object.assign(x, data); toast('Barber updated.'); }
     else { db.barbers.push({ id: 'barber' + Date.now(), ...data }); toast('Barber added.'); }
     save(); closeModal(); render(); return;
   }
   if (form.id === 'adm-service-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const bv = fd.getAll('branches');
-    const data = { name: v.name, desc: v.desc || 'Grooming service', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
+    const data = { name: v.name, desc: v.desc || 'Grooming service', image: v.image || '', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
     if (v.id) { const x = db.services.find(s => s.id === v.id); if (x) Object.assign(x, data); toast('Service updated.'); }
     else { db.services.push({ id: 'srv' + Date.now(), ...data }); toast('Service added.'); }
     save(); closeModal(); render(); return;
   }
   if (form.id === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    db.settings = { name: v.name, phone: v.phone, email: v.email, address: v.address };
+    db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address };
     save(); toast('Settings saved.'); return;
   }
 });

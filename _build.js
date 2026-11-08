@@ -62,9 +62,7 @@ const reps = [
    "<button class=\"btn\" data-page=\"login\">Login</button><button class=\"btn btn-gold\" data-action=\"start-booking\">Book Now</button>"],
   ["<button data-page=\"client\" class=\"navlink ${page==='client'?'active':''}\">My Bookings</button><button data-page=\"admin\" class=\"navlink ${page==='admin'?'active':''}\">Admin Demo</button>", ""],
 
-  // --- footer: drop Membership + Admin demo links ---
-  ["<a data-page=\"services\">Services</a><a data-page=\"barbers\">Barbers</a><a data-page=\"membership\">Membership</a><a data-page=\"contact\">Contact</a><a data-page=\"admin\">Admin demo</a>",
-   "<a data-page=\"services\">Services</a><a data-page=\"barbers\">Barbers</a><a data-page=\"contact\">Contact</a>"],
+  // --- footer: 4-column widget layout (markup lives in prototype.html footer()) ---
 
   // --- home: remove membership promo section ---
   ["<section class=\"section-tight\"><div class=\"member-section\"><div class=\"member-section-copy\"><div class=\"eyebrow\">THE GENT’S MEMBERSHIP</div><h2>More than a haircut.</h2><p>Exclusive benefits, priority booking and a better grooming experience.</p>${button('Explore Membership →','go:membership','btn btn-gold')}</div>${membershipCard()}</div></section>", ""],
@@ -98,12 +96,9 @@ const reps = [
   ["function admin(){return dashboardFrame('admin',adminBody())}",
    "function admin(){return auth('admin')?dashboardFrame('admin',adminBody()):loginCard('admin')}"],
 
-  // --- contact: real phone/email, live WhatsApp link ---
-  ["+263 77 123 4567 <span class=\"small\">(demo)</span>", "+263 77 601 1938"],
-  ["hello@thegents.co.zw <span class=\"small\">(demo)</span>", "admin@thegents.co.zw"],
-  ["Fife Avenue & Borrowdale, Harare (demo)", "Fife Avenue & Borrowdale, Harare"],
-  ["if(cmd==='whatsapp-demo')return toast('WhatsApp would open here with the verified business number. This is a simulated action.')",
-   "if(cmd==='whatsapp-demo'){window.open('https://wa.me/263776011938','_blank');return}"],
+  // --- business settings in seed data ---
+  ["gallery:GE.map(x=>({...x}))}",
+   "gallery:GE.map(x=>({...x})),settings:{name:'The Gent’s',phone:'+263 77 601 1938',email:'admin@thegents.co.zw',whatsapp:'+263776011938',address:'Fife Avenue & Borrowdale, Harare'}}"],
 
   // --- de-demo remaining labels ---
   ["This is a demo: notifications are simulated.", "Notifications are simulated."],
@@ -138,12 +133,8 @@ const reps = [
   ["if(form.id==='contact-form'){db.contacts.push(v)",
    "if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin.html':'client.html';return}if(form.id==='contact-form'){db.contacts.push(v)"],
 
-  // --- business settings in seed data + contact page reads them ---
-  ["notifications:[],membership:false}",
-   "notifications:[],membership:false,settings:{name:'The Gent’s',phone:'+263 77 601 1938',email:'admin@thegents.co.zw',address:'Fife Avenue & Borrowdale, Harare'}}"],
-  ["<span class=\"muted\">+263 77 601 1938</span>", "<span class=\"muted\">${esc(db.settings&&db.settings.phone||'+263 77 601 1938')}</span>"],
-  ["<span class=\"muted\">admin@thegents.co.zw</span>", "<span class=\"muted\">${esc(db.settings&&db.settings.email||'admin@thegents.co.zw')}</span>"],
-  ["<span class=\"muted\">Fife Avenue & Borrowdale, Harare</span>", "<span class=\"muted\">${esc(db.settings&&db.settings.address||'Fife Avenue & Borrowdale, Harare')}</span>"],
+  // --- loginCard: add Create account link for clients ---
+  ["Book an appointment</a>'}", "Book an appointment</a> · <a href=\"#\" data-action=\"cl-register\" style=\"color:var(--gold)\">Create account</a>'}"],
 
   // --- client profile in seed data ---
   ["address:'Fife Avenue & Borrowdale, Harare'}}",
@@ -156,7 +147,7 @@ const reps = [
 
   // init: resolve branch hash + pending booking preset before first render
   ["document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});render();",
-   "document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\\/?/,''));if(!h){page='home';location.replace('index.html')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking.html'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}render();"]
+   "document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\\/?/,''));if(!h){page='home';location.replace('index.html')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking.html'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}bootRemote();render();"]
 ];
 
 for (const [a, b] of reps) {
@@ -168,11 +159,12 @@ for (const [a, b] of reps) {
 const adminExtra = fs.readFileSync(path.join(ROOT, 'src', 'admin-extra.js'), 'utf8');
 const clientExtra = fs.readFileSync(path.join(ROOT, 'src', 'client-extra.js'), 'utf8');
 const erpExtra = fs.readFileSync(path.join(ROOT, 'src', 'erp-extra.js'), 'utf8');
+const contentExtra = fs.readFileSync(path.join(ROOT, 'src', 'content-extra.js'), 'utf8');
 const adminCss = fs.readFileSync(path.join(ROOT, 'src', 'admin.css'), 'utf8');
-js = js.replace("document.addEventListener('submit',e=>{", () => adminExtra + "\n" + clientExtra + "\n" + erpExtra + "\n" + "document.addEventListener('submit',e=>{");
+js = js.replace("document.addEventListener('submit',e=>{", () => adminExtra + "\n" + clientExtra + "\n" + erpExtra + "\n" + contentExtra + "\n" + "document.addEventListener('submit',e=>{");
 css += '\n' + adminCss;
 // Hero slide titles: single row, scales with viewport width
-css += '\n.slider-title{white-space:nowrap;font-size:clamp(20px,4.6vw,46px)}\n';
+css += '\n.slider-content h1{white-space:nowrap;font-size:clamp(15px,4.6vw,44px)}\n';
 // Mobile responsiveness pass (loaded last so it wins)
 css += '\n' + fs.readFileSync(path.join(ROOT, 'src', 'mobile.css'), 'utf8');
 

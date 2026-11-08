@@ -1,0 +1,6 @@
+# Uploaded images only — never execute scripts from this folder.
+RemoveHandler .php .phtml .phar .cgi .pl .py .sh .asp .aspx
+RemoveType .php .phtml .phar .cgi .pl .py .sh .asp .aspx
+<IfModule mod_mime.c>
+  AddType text/plain .php .phtml .phar .cgi .pl .py .sh .asp .aspx
+</IfModule>
