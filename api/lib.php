@@ -99,7 +99,111 @@ function readJson(): array {
 }
 
 // Keys only an authenticated admin may change / see.
-const ADMIN_ONLY_KEYS = ['staff', 'accounting', 'clientProfiles'];
+const ADMIN_ONLY_KEYS = ['staff', 'accounting', 'clientProfiles', 'members', 'membershipTiers', 'wallets', 'giftCards', 'walletTxns', 'rewards', 'rewardConfig', 'roles'];
+
+// ---------- Staff permissions (RBAC) ----------
+// Top-level site_data keys → acceptable VIEW perms (GET payload filtering)
+// and WRITE perms (POST change enforcement). Any match grants access.
+const KEY_VIEW_PERMS = [
+    'bookings' => ['bookings.view', 'requests.view', 'calendar.view'],
+    'notifications' => ['bookings.view', 'requests.view'],
+    'branches' => ['branches.view'],
+    'barbers' => ['staff_data.view'], 'services' => ['staff_data.view'],
+    'gallery' => ['content.view'], 'heroSlides' => ['content.view'],
+    'settings' => ['settings.manage'],
+    'contacts' => ['clients.view'], 'clientProfiles' => ['clients.view', 'usermgmt.view'],
+    'members' => ['membership.view', 'membership.members'],
+    'membershipTiers' => ['membership.view', 'membership.tiers'],
+    'wallets' => ['membership.view', 'membership.wallets'], 'walletTxns' => ['membership.view', 'membership.wallets'],
+    'giftCards' => ['membership.view', 'membership.giftcards'],
+    'rewards' => ['membership.view', 'membership.rewards'], 'rewardConfig' => ['membership.view', 'membership.rewards'],
+    'staff' => ['staffmgmt.view'], 'roles' => ['staffmgmt.view'],
+    'accounting' => ['erp.view', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr', 'erp.assistant'],
+];
+const KEY_WRITE_PERMS = [
+    'bookings' => ['bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'bookings.delete', 'bookings.pay'],
+    'notifications' => ['bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'bookings.delete', 'bookings.pay'],
+    'branches' => ['branches.manage'],
+    'barbers' => ['staff_data.manage'], 'services' => ['staff_data.manage'],
+    'gallery' => ['content.manage'], 'heroSlides' => ['content.manage'], 'settings' => ['settings.manage'],
+    'contacts' => ['clients.manage'], 'clientProfiles' => ['usermgmt.manage'],
+    'members' => ['membership.members'], 'membershipTiers' => ['membership.tiers'],
+    'wallets' => ['membership.wallets'], 'walletTxns' => ['membership.wallets'],
+    'giftCards' => ['membership.giftcards'],
+    'rewards' => ['membership.rewards'], 'rewardConfig' => ['membership.rewards'],
+    'staff' => ['staffmgmt.manage'], 'roles' => ['staffmgmt.manage'],
+    'accounting' => ['erp.manage', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr'],
+];
+// Legacy module-level permission keys → granular expansion (keep in sync with src/erp-extra.js)
+const LEGACY_PERM_MAP = [
+    'dashboard' => ['dashboard.view'],
+    'bookings' => ['bookings.view', 'bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'bookings.delete', 'bookings.pay', 'bookings.export', 'requests.view', 'calendar.view'],
+    'calendar' => ['calendar.view'],
+    'branches' => ['branches.view', 'branches.manage'],
+    'staff_data' => ['staff_data.view', 'staff_data.manage'],
+    'content' => ['content.view', 'content.manage'],
+    'clients' => ['clients.view', 'clients.manage'],
+    'membership' => ['membership.view', 'membership.tiers', 'membership.members', 'membership.wallets', 'membership.giftcards', 'membership.rewards'],
+    'reports' => ['reports.view'],
+    'settings' => ['settings.manage'],
+    'usermgmt' => ['usermgmt.view', 'usermgmt.manage'],
+    'staffmgmt' => ['staffmgmt.view', 'staffmgmt.manage'],
+    'erp' => ['erp.view', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr', 'erp.assistant', 'erp.manage'],
+];
+
+function permExpand(array $perms): array {
+    $out = [];
+    foreach ($perms as $p) {
+        if (isset(LEGACY_PERM_MAP[$p])) foreach (LEGACY_PERM_MAP[$p] as $x) $out[$x] = true;
+        else $out[(string)$p] = true;
+    }
+    return array_keys($out);
+}
+
+// The staff record for the current admin session, or null for the primary admin.
+function currentStaff(): ?array {
+    $id = $_SESSION['gents_staff_id'] ?? '';
+    if ($id === '' || strpos($id, 'admin_users:') === 0) return null;
+    $d = loadData();
+    foreach (($d['staff'] ?? []) as $s) if (($s['id'] ?? '') === $id) return $s;
+    return null;
+}
+
+// null → primary admin (unrestricted); ['*'] → all perms; else granular list.
+function staffPermSet(?array $staff): ?array {
+    if ($staff === null) return null;
+    if (($staff['permissions'] ?? null) === '*') return ['*'];
+    $d = loadData() ?: [];
+    $perms = $staff['permissions'] ?? [];
+    if (!is_array($perms)) $perms = [];
+    $rid = $staff['roleId'] ?? ($staff['role'] ?? '');
+    foreach (($d['roles'] ?? []) as $r) {
+        if (($r['id'] ?? '') === $rid || ($r['name'] ?? '') === $rid) {
+            $perms = array_merge($perms, $r['perms'] ?? []);
+            break;
+        }
+    }
+    return permExpand($perms);
+}
+
+function staffCan(?array $perms, array $accepted): bool {
+    if ($perms === null || in_array('*', $perms, true)) return true;
+    foreach ($accepted as $a) if (in_array($a, $perms, true)) return true;
+    return false;
+}
+
+// Strip site_data keys a restricted staff member may not view.
+function filterForStaff(array $d, array $perms): array {
+    foreach (KEY_VIEW_PERMS as $key => $accepted) {
+        if (array_key_exists($key, $d) && !staffCan($perms, $accepted)) unset($d[$key]);
+    }
+    // Never ship staff password fields to any browser session.
+    if (isset($d['staff']) && is_array($d['staff'])) {
+        foreach ($d['staff'] as &$s) unset($s['password']);
+        unset($s);
+    }
+    return $d;
+}
 
 // Content keys that may be back-filled from client data when missing server-side.
 const FILLABLE_KEYS = ['settings', 'clientProfile', 'hero', 'gallery'];
@@ -119,6 +223,7 @@ function mergePublicData(array $stored, array $inc): array {
                 if ((isClient() || isAdmin()) && !empty($b['name']) && !empty($b['branch']) && !empty($b['service']) && !empty($b['date']) && !empty($b['time'])) {
                     $b['status'] = in_array($b['status'] ?? '', ['Pending', 'Confirmed'], true) ? $b['status'] : 'Pending';
                     $b['source'] = in_array($b['source'] ?? '', ['Online', 'Walk-in'], true) ? $b['source'] : 'Online';
+                    $b['payment'] = 'Unpaid'; // payment is recorded by staff only
                     $byId[$b['id']] = $b;
                 }
             } else {

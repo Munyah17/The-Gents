@@ -50,6 +50,7 @@
   .empty{padding:26px 16px}
   .appointment{row-gap:10px}
   /* Clean mobile header: hamburger left, Book Now right — nothing else */
+  .nav .brand{display:none}
   .nav .shell{justify-content:flex-start;gap:12px}
   .nav-actions{margin-left:auto;gap:8px}
   .nav-actions [data-action="theme"],.nav-actions [data-page="login"]{display:none}
@@ -60,6 +61,8 @@
   .barber-row>*{flex:0 0 74%;scroll-snap-align:start;min-width:0}
 }
 @media(max-width:480px){
+  /* Hero titles: wrap to two lines at readable size instead of one cramped line */
+  .slider-content h1{white-space:normal;font-size:clamp(26px,7.2vw,40px);line-height:1.15}
   .stat .number{font-size:21px}
   .dash-top h1{font-size:24px}
   .page-head h1{font-size:30px}

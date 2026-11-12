@@ -43,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = strtolower(trim((string)($in['email'] ?? '')));
         $phone = trim((string)($in['phone'] ?? ''));
         $pass  = (string)($in['password'] ?? '');
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jsonOut(['ok' => false, 'error' => 'invalid email'], 400);
 
         if ($action === 'client-register') {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jsonOut(['ok' => false, 'error' => 'invalid email'], 400);
             if ($name === '' || strlen($pass) < 6) jsonOut(['ok' => false, 'error' => 'name and a password of 6+ characters are required'], 400);
             $st = db()->prepare('SELECT id FROM clients WHERE email = ?');
             $st->execute([$email]);
@@ -55,9 +55,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cid = (int)db()->lastInsertId();
         } else {
             if ($pass === '') jsonOut(['ok' => false, 'error' => 'missing credentials'], 400);
-            $st = db()->prepare('SELECT id, name, phone, email, password_hash FROM clients WHERE email = ?');
-            $st->execute([$email]);
+            $login = strtolower(trim($in['email'] ?? ''));
+            // Match email or full name in the clients table
+            $st = db()->prepare('SELECT id, name, phone, email, password_hash FROM clients WHERE LOWER(email) = ? OR LOWER(name) = ?');
+            $st->execute([$login, $login]);
             $c = $st->fetch();
+            // Fall back to member pseudonym → resolve to the linked account email
+            if (!$c && $login !== '') {
+                $d = loadData() ?: [];
+                foreach (($d['members'] ?? []) as $m) {
+                    if (strtolower(trim($m['pseudo'] ?? '')) === $login && !empty($m['email'])) {
+                        $st2 = db()->prepare('SELECT id, name, phone, email, password_hash FROM clients WHERE LOWER(email) = ?');
+                        $st2->execute([strtolower(trim($m['email']))]);
+                        $c = $st2->fetch();
+                        if ($c) break;
+                    }
+                }
+            }
             if (!$c || empty($c['password_hash']) || !password_verify($pass, $c['password_hash'])) {
                 jsonOut(['ok' => false, 'error' => 'invalid credentials'], 401);
             }

@@ -2,7 +2,7 @@
 // Injected inside app.js IIFE by _build.js. Overrides adminBody/dashboardFrame
 // (later function declarations win) and adds adm-* actions/listeners.
 
-let admQ = '', admStatusF = 'all', admCalOff = 0, admCQ = '', admRange = 30;
+let admQ = '', admStatusF = 'all', admCalOff = 0, admCQ = '', admRange = 30, reqTab = 'pending', admPayF = 'all';
 
 const admF = () => {
   let l = branchFilter === 'all' ? db.bookings : db.bookings.filter(b => b.branch === branchFilter);
@@ -12,17 +12,23 @@ const admF = () => {
 };
 
 function adminBody() {
-  const titles = { overview: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', content: 'Content & Media', clients: 'Clients', reports: 'Reports', users: 'User Management', staff: 'Staff Management', erp: 'Accounting & ERP', settings: 'Settings' };
+  const titles = { overview: 'Dashboard', bookings: 'Bookings', requests: 'Booking Requests', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', content: 'Content & Media', clients: 'Clients', membership: 'Membership & Wallet', reports: 'Reports', users: 'User Management', staff: 'Account Access', erp: 'Accounting & ERP', settings: 'Settings' };
   const f = branchFilter === 'all' ? db.bookings : db.bookings.filter(b => b.branch === branchFilter);
   const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">All changes are saved locally.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
+  if (!admCan(dashboardTab)) {
+    const alt = Object.keys(PERM_MAP).find(k => admCan(k));
+    if (alt) dashboardTab = alt;
+  }
   if (!admCan(dashboardTab)) return top + `<div class="panel"><p class="muted">You don’t have permission to access this section. Contact your administrator.</p></div>`;
   if (dashboardTab === 'overview') return admOverview(f, top);
   if (dashboardTab === 'bookings') return admBookings(top);
+  if (dashboardTab === 'requests') return admRequests(top);
   if (dashboardTab === 'calendar') return admCalendar(f, top);
   if (dashboardTab === 'branches') return admBranches(top);
   if (dashboardTab === 'barbers') return admBarbers(top);
   if (dashboardTab === 'services') return admServices(top);
   if (dashboardTab === 'content') return admContent(top);
+  if (dashboardTab === 'membership') return admMembership(top);
   if (dashboardTab === 'clients') return admClients(top);
   if (dashboardTab === 'reports') return admReports(f, top);
   if (dashboardTab === 'users') return admUsers(top);
@@ -34,8 +40,8 @@ function adminBody() {
 function dashboardFrame(role, content) {
   const admin = role === 'admin';
   const items = admin
-    ? [["overview", "Dashboard", "⌂"], ["bookings", "Bookings", "▢"], ["calendar", "Calendar", "▦"], ["branches", "Branches", "⌖"], ["barbers", "Barbers", "✂"], ["services", "Services", "✧"], ["content", "Content & Media", "◈"], ["clients", "Clients", "♧"], ["reports", "Reports", "▥"], ["users", "User Management", "♟"], ["staff", "Staff Management", "⚑"], ["erp", "Accounting & ERP", "¤"], ["settings", "Settings", "⚙"]]
-    : [["overview", "Overview", "⌂"], ["bookings", "My Bookings", "▢"], ["rewards", "Rewards", "★"], ["notifications", "Alerts", "◔"], ["profile", "Profile", "♙"]];
+    ? [["overview", "Dashboard", "⌂"], ["requests", "Requests", "✉"], ["bookings", "Bookings", "▢"], ["calendar", "Calendar", "▦"], ["branches", "Branches", "⌖"], ["barbers", "Barbers", "✂"], ["services", "Services", "✧"], ["content", "Content & Media", "◈"], ["clients", "Clients", "♧"], ["membership", "Membership", "❖"], ["reports", "Reports", "▥"], ["users", "User Management", "♟"], ["staff", "Account Access", "⚑"], ["erp", "Accounting & ERP", "¤"], ["settings", "Settings", "⚙"]]
+    : [["overview", "Overview", "⌂"], ["bookings", "My Bookings", "▢"], ["membership", "Membership", "❖"], ["wallet", "Wallet", "▣"], ["rewards", "Rewards", "★"], ["notifications", "Alerts", "◔"], ["profile", "Profile", "♙"]];
   const selected = admin ? dashboardTab : (typeof clientView !== 'undefined' ? clientView : 'overview');
   const navItems = admin ? items.filter(([key]) => admCan(key)) : items;
   const nav = navItems.map(([key, title, ico]) => `<button class="${selected === key ? 'active' : ''}" data-action="${admin ? 'admin-tab' : 'client-side'}:${key}">${ico} &nbsp; ${title}</button>`).join('');
@@ -51,7 +57,7 @@ function admOverview(f, top) {
   const rev = f.filter(b => b.status === 'Confirmed' || b.status === 'Completed').reduce((s, b) => s + Number(service(b.service).price || 0), 0);
   const stats = [['▢', f.length, 'Total Bookings'], ['◷', today.length, 'Today'], ['✓', pending.length, 'Pending'], ['$', money(rev), 'Revenue']];
   let h = top + `<div class="stat-grid">${stats.map(([i, n, t]) => `<div class="stat"><span class="stat-icon">${i}</span><div class="number">${n}</div><div class="small">${t}</div></div>`).join('')}</div>`;
-  h += `<div class="dash-grid"><div class="panel"><div class="panel-head"><h3>Pending Approvals</h3>${button('View all', 'admin-tab:bookings', 'btn btn-sm')}</div>${pending.slice(0, 6).map(b => `<div class="appointment"><div><strong>${esc(b.name)}</strong><small>${esc(service(b.service).name)} · ${esc(barber(b.barber).name)} · ${fmt(b.date)} ${esc(b.time)}</small></div><div class="row-actions"><button class="btn btn-sm" data-action="approve:${b.id}">✓</button><button class="btn btn-sm" data-action="decline:${b.id}">×</button></div></div>`).join('') || '<p class="muted">Nothing pending.</p>'}</div>`;
+  h += `<div class="dash-grid"><div class="panel"><div class="panel-head"><h3>Pending Approvals</h3>${admCan('requests') || admCan('bookings') ? button('View all', 'admin-tab:requests', 'btn btn-sm') : ''}</div>${pending.slice(0, 6).map(b => `<div class="appointment"><div><strong>${esc(b.name)}</strong><small>${esc(service(b.service).name)} · ${esc(barber(b.barber).name)} · ${fmt(b.date)} ${esc(b.time)}</small></div><div class="row-actions">${hasPerm('bookings.approve') ? `<button class="btn btn-sm" data-action="approve:${b.id}">✓</button>` : ''}${hasPerm('bookings.decline') ? `<button class="btn btn-sm" data-action="decline:${b.id}">×</button>` : ''}</div></div>`).join('') || '<p class="muted">Nothing pending.</p>'}</div>`;
   h += `<div class="panel"><div class="panel-head"><h3>Today’s Schedule</h3></div>${today.slice().sort((a, b) => a.time.localeCompare(b.time)).map(b => `<div class="appointment"><div><strong>${esc(b.time)} · ${esc(b.name)}</strong><small>${esc(service(b.service).name)} · ${esc(barber(b.barber).name)}</small></div>${badge(b.status)}</div>`).join('') || '<p class="muted">No appointments today.</p>'}</div></div>`;
   h += `<div class="dash-grid"><div class="panel"><div class="panel-head"><h3>Branch Performance</h3></div>${db.branches.map(x => { const n = db.bookings.filter(b => b.branch === x.id).length; return `<div class="progress-row"><span>${esc(x.name)}</span><div class="track"><div class="fill" style="width:${Math.max(3, n / Math.max(1, db.bookings.length) * 100)}%"></div></div><b>${n}</b></div>`; }).join('')}</div>`;
   h += `<div class="panel"><div class="panel-head"><h3>Recent Activity</h3></div>${(db.notifications || []).slice(0, 6).map(n => `<p class="small" style="margin:8px 0;color:var(--muted)">• ${esc(n)}</p>`).join('') || '<p class="muted">No activity yet.</p>'}</div></div>`;
@@ -63,18 +69,54 @@ function admOverview(f, top) {
 function admBookings(top) {
   const list = admF().slice().sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
   const statuses = ['all', 'Pending', 'Confirmed', 'Completed', 'Cancelled', 'Declined'];
-  return top + `<div class="panel"><div class="panel-head"><h3>All Bookings (${list.length})</h3><div class="auth-actions">${button('+ Walk-in', 'walkin', 'btn btn-gold btn-sm')}${ioButtons('bookings', true)}${button('Reset Data', 'reset', 'btn btn-sm')}</div></div>
+  return top + `<div class="panel"><div class="panel-head"><h3>All Bookings (${list.length})</h3><div class="auth-actions">${hasPerm('bookings.create') ? button('+ Walk-in', 'walkin', 'btn btn-gold btn-sm') : ''}${ioButtons('bookings', true)}${myPerms().includes('*') ? button('Reset Data', 'reset', 'btn btn-sm') : ''}</div></div>
   <div class="adm-filters"><input id="adm-q" class="field" style="max-width:260px" placeholder="Search name, phone, email…" value="${esc(admQ)}"><div class="segmented">${statuses.map(s => `<button class="pill ${admStatusF === s ? 'active' : ''}" data-action="adm-status:${s}">${s === 'all' ? 'All' : s}</button>`).join('')}</div></div>${admTable(list)}</div>`;
 }
 
 function admTable(list) {
-  return `<div class="table-wrap"><table><thead><tr><th>Date & Time</th><th>Client</th><th>Contact</th><th>Service</th><th>Barber</th><th>Branch</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(b => `<tr><td>${fmt(b.date)}<br><span class="muted">${esc(b.time)}</span></td><td>${esc(b.name)}</td><td class="small muted">${esc(b.phone)}<br>${esc(b.email || '')}</td><td>${esc(service(b.service).name)}</td><td>${esc(barber(b.barber).name)}</td><td>${esc(branch(b.branch).name)}</td><td class="small">${esc(b.source || '—')}</td><td>${badge(b.status)}</td><td><div class="row-actions"><button class="btn btn-sm" data-action="adm-view-booking:${b.id}">View</button>${b.status === 'Pending' ? `<button class="btn btn-sm" data-action="approve:${b.id}">✓</button><button class="btn btn-sm" data-action="decline:${b.id}">×</button>` : ''}${b.status === 'Confirmed' ? `<button class="btn btn-sm" data-action="adm-complete:${b.id}">Done</button>` : ''}<button class="btn btn-sm" data-action="adm-del-booking:${b.id}">Del</button></div></td></tr>`).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No bookings match.</div>'}</div>`;
+  return `<div class="table-wrap"><table><thead><tr><th>Date & Time</th><th>Client</th><th>Contact</th><th>Service</th><th>Barber</th><th>Branch</th><th>Source</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(b => `<tr><td>${fmt(b.date)}<br><span class="muted">${esc(b.time)}</span></td><td>${esc(b.name)}</td><td class="small muted">${esc(b.phone)}<br>${esc(b.email || '')}</td><td>${esc(service(b.service).name)}</td><td>${esc(barber(b.barber).name)}</td><td>${esc(branch(b.branch).name)}</td><td class="small">${esc(b.source || '—')}</td><td>${badge(b.status)}</td><td><div class="row-actions"><button class="btn btn-sm" data-action="adm-view-booking:${b.id}">View</button>${b.status === 'Pending' && hasPerm('bookings.approve') ? `<button class="btn btn-sm" data-action="approve:${b.id}">✓</button>` : ''}${b.status === 'Pending' && hasPerm('bookings.decline') ? `<button class="btn btn-sm" data-action="decline:${b.id}">×</button>` : ''}${b.status === 'Confirmed' && hasPerm('bookings.complete') ? `<button class="btn btn-sm" data-action="adm-complete:${b.id}">Done</button>` : ''}${hasPerm('bookings.delete') ? `<button class="btn btn-sm" data-action="adm-del-booking:${b.id}">Del</button>` : ''}</div></td></tr>`).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No bookings match.</div>'}</div>`;
 }
 
 function admViewBooking(id) {
   const b = db.bookings.find(x => x.id === id); if (!b) return;
-  const rows = [['Reference', b.id], ['Client', b.name], ['Phone', b.phone], ['Email', b.email || '—'], ['Branch', branch(b.branch).name], ['Service', service(b.service).name + ' · ' + service(b.service).duration + ' min'], ['Barber', barber(b.barber).name], ['Date', fmt(b.date)], ['Time', b.time], ['Status', b.status], ['Source', b.source || '—'], ['Notes', b.notes || '—']];
-  modal('Appointment ' + esc(b.id), rows.map(([k, v]) => `<div class="data-line"><span class="muted">${k}</span><b>${esc(v)}</b></div>`).join('') + `<div class="auth-actions" style="margin-top:20px;flex-wrap:wrap">${b.status === 'Pending' ? `<button class="btn btn-gold" data-action="approve:${b.id}">Approve</button><button class="btn" data-action="decline:${b.id}">Decline</button>` : ''}${b.status === 'Confirmed' ? `<button class="btn" data-action="adm-complete:${b.id}">Mark Completed</button>` : ''}<button class="btn" data-action="adm-cancel-booking:${b.id}">Cancel Booking</button><button class="btn" data-action="adm-del-booking:${b.id}">Delete</button></div>`);
+  const rows = [['Reference', b.id], ['Client', b.name], ['Phone', b.phone], ['Email', b.email || '—'], ['Branch', branch(b.branch).name], ['Service', service(b.service).name + ' · ' + service(b.service).duration + ' min'], ['Barber', barber(b.barber).name], ['Date', fmt(b.date)], ['Time', b.time], ['Status', b.status], ['Decline reason', b.declineReason || '—'], ['Payment', (b.payment || 'Unpaid') + (b.paidAt ? ' · ' + b.paidAt : '')], ['Source', b.source || '—'], ['Notes', b.notes || '—']];
+  modal('Appointment ' + esc(b.id), rows.map(([k, v]) => `<div class="data-line"><span class="muted">${k}</span><b>${esc(v)}</b></div>`).join('') + `<div class="auth-actions" style="margin-top:20px;flex-wrap:wrap">${b.status === 'Pending' && hasPerm('bookings.approve') ? `<button class="btn btn-gold" data-action="approve:${b.id}">Approve</button>` : ''}${(b.status === 'Pending' || b.status === 'Confirmed') && hasPerm('bookings.decline') ? `<button class="btn" data-action="decline:${b.id}">Decline</button>` : ''}${b.status === 'Confirmed' && hasPerm('bookings.complete') ? `<button class="btn" data-action="adm-complete:${b.id}">Mark Completed</button>` : ''}${hasPerm('bookings.cancel') ? `<button class="btn" data-action="adm-cancel-booking:${b.id}">Cancel Booking</button>` : ''}${hasPerm('bookings.delete') ? `<button class="btn" data-action="adm-del-booking:${b.id}">Delete</button>` : ''}</div>`);
+}
+
+// ---------- Booking Requests ----------
+const payBadge = p => { const v = p || 'Unpaid'; return `<span class="badge status ${v === 'Unpaid' ? 'cancelled' : 'confirmed'}">${esc(v)}</span>`; };
+function admRequests(top) {
+  const map = { pending: 'Pending', approved: 'Confirmed', completed: 'Completed', declined: 'Declined', cancelled: 'Cancelled' };
+  const base = admF();
+  const counts = {}; Object.values(map).forEach(s => counts[s] = base.filter(b => b.status === s).length);
+  let list = base;
+  if (reqTab !== 'all') list = list.filter(b => b.status === (map[reqTab] || reqTab));
+  if (admPayF !== 'all') list = list.filter(b => (b.payment || 'Unpaid') === admPayF);
+  list = list.slice().sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  const tabs = [['pending', 'Pending'], ['approved', 'Approved'], ['completed', 'Completed'], ['declined', 'Declined'], ['cancelled', 'Cancelled'], ['all', 'All']];
+  const pays = ['Unpaid', 'Paid', 'Wallet', 'Gift Card', 'Comp'];
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  return top + `<div class="panel"><div class="panel-head"><h3>Booking Requests</h3><div class="auth-actions">${hasPerm('bookings.create') ? button('+ Walk-in', 'walkin', 'btn btn-gold btn-sm') : ''}</div></div>
+  <div class="adm-filters"><div class="segmented" style="flex-wrap:wrap">${tabs.map(([k, t]) => `<button class="pill ${reqTab === k ? 'active' : ''}" data-action="req-tab:${k}">${t} (${k === 'all' ? total : counts[map[k]] || 0})</button>`).join('')}</div></div>
+  <div class="adm-filters"><div class="segmented">${['all', ...pays].map(p => `<button class="pill ${admPayF === p ? 'active' : ''}" data-action="req-pay:${p}">${p === 'all' ? 'All payments' : p}</button>`).join('')}</div><input id="adm-q" class="field" style="max-width:240px" placeholder="Search name, phone, email…" value="${esc(admQ)}"></div>
+  ${admReqTable(list)}</div>`;
+}
+function admReqTable(list) {
+  return `<div class="table-wrap"><table><thead><tr><th>Date & Time</th><th>Client</th><th>Contact</th><th>Service</th><th>Barber</th><th>Branch</th><th>Status</th><th>Payment</th><th>Actions</th></tr></thead><tbody>${list.map(b => `<tr><td>${fmt(b.date)}<br><span class="muted">${esc(b.time)}</span></td><td>${esc(b.name)}</td><td class="small muted">${esc(b.phone)}<br>${esc(b.email || '')}</td><td>${esc(service(b.service).name)}</td><td>${esc(barber(b.barber).name)}</td><td>${esc(branch(b.branch).name)}</td><td>${badge(b.status)}${b.declineReason ? `<br><span class="muted small" title="Decline reason">↳ ${esc(b.declineReason)}</span>` : ''}</td><td>${payBadge(b.payment)}</td><td><div class="row-actions"><button class="btn btn-sm" data-action="adm-view-booking:${b.id}">View</button>${b.status === 'Pending' && hasPerm('bookings.approve') ? `<button class="btn btn-sm" data-action="approve:${b.id}">✓</button>` : ''}${(b.status === 'Pending' || b.status === 'Confirmed') && hasPerm('bookings.decline') ? `<button class="btn btn-sm" data-action="decline:${b.id}">Decline</button>` : ''}${b.status === 'Confirmed' && hasPerm('bookings.complete') ? `<button class="btn btn-sm" data-action="adm-complete:${b.id}">Done</button>` : ''}${(b.status === 'Confirmed' || b.status === 'Completed') && hasPerm('bookings.pay') ? button('Pay', 'adm-pay:' + b.id, 'btn btn-sm') : ''}</div></td></tr>`).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No requests in this view.</div>'}</div>`;
+}
+function admDeclineModal(id) {
+  const b = db.bookings.find(x => x.id === id); if (!b) return;
+  modal('Decline ' + esc(b.id), `<p class="muted">${esc(b.name)} · ${esc(service(b.service).name)} · ${fmt(b.date)} ${esc(b.time)}</p>
+  <form id="adm-decline-form"><input type="hidden" name="id" value="${esc(id)}">
+  <div class="form-group"><label class="form-label">Reason (kept on record)</label><textarea class="field" name="reason" rows="3" placeholder="e.g. Slot no longer available, outside service area…"></textarea></div>
+  <button class="btn" type="submit">Decline Request</button></form>`);
+}
+function admPayModal(id) {
+  const b = db.bookings.find(x => x.id === id); if (!b) return;
+  modal('Record payment — ' + esc(b.id), `<p class="muted">${esc(b.name)} · ${esc(service(b.service).name)} · ${money(service(b.service).price)} · ${fmt(b.date)} ${esc(b.time)}</p>
+  <form id="adm-pay-form"><input type="hidden" name="id" value="${esc(id)}">
+  <div class="form-group"><label class="form-label">Payment method</label><select class="field" name="method"><option value="Paid">Paid (cash / card)</option><option value="Wallet">Wallet</option><option value="Gift Card">Gift Card</option><option value="Comp">Complimentary</option></select></div>
+  <button class="btn btn-gold" type="submit">Record Payment</button></form>`);
 }
 
 // ---------- Calendar ----------
@@ -103,7 +145,7 @@ function admDay(iso) {
 
 // ---------- Branches ----------
 function admBranches(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Branch Directory</h3><div class="auth-actions">${ioButtons('branches', true)}${button('+ Add Branch', 'adm-add-branch', 'btn btn-gold btn-sm')}</div></div><div class="grid grid-3">${db.branches.map(x => { const n = db.bookings.filter(b => b.branch === x.id).length; return `<div class="card"><img class="branch-photo" src="${esc(x.photo)}"><div class="card-pad"><h3>${esc(x.name)}</h3><p class="muted small">${esc(x.place)}<br>${esc(x.hours)}<br>${n} booking${n === 1 ? '' : 's'}</p><div class="row-actions" style="margin-top:10px"><button class="btn btn-sm" data-action="open-branch:${x.id}">View</button><button class="btn btn-sm" data-action="adm-edit-branch:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-branch:${x.id}">Delete</button></div></div></div>`; }).join('')}</div></div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Branch Directory</h3><div class="auth-actions">${ioButtons('branches', true)}${hasPerm('branches.manage') ? button('+ Add Branch', 'adm-add-branch', 'btn btn-gold btn-sm') : ''}</div></div><div class="grid grid-3">${db.branches.map(x => { const n = db.bookings.filter(b => b.branch === x.id).length; return `<div class="card"><img class="branch-photo" src="${esc(x.photo)}"><div class="card-pad"><h3>${esc(x.name)}</h3><p class="muted small">${esc(x.place)}<br>${esc(x.hours)}<br>${n} booking${n === 1 ? '' : 's'}</p>${hasPerm('branches.manage') ? `<div class="row-actions" style="margin-top:10px"><button class="btn btn-sm" data-action="adm-edit-branch:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-branch:${x.id}">Delete</button></div>` : ''}</div></div>`; }).join('')}</div></div>`;
 }
 
 function admBranchForm(id) {
@@ -114,7 +156,7 @@ function admBranchForm(id) {
 
 // ---------- Barbers ----------
 function admBarbers(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Team (${db.barbers.length})</h3><div class="auth-actions">${ioButtons('barbers', true)}${button('+ Add Barber', 'adm-add-barber', 'btn btn-gold btn-sm')}</div></div><div class="grid grid-4">${db.barbers.map(x => `<div class="card"><img class="barber-photo" src="${esc(x.photo)}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p><p class="small muted">${x.services.map(s => esc(service(s).name)).join(' · ')}</p>${x.bio ? `<p class="small muted">${esc(x.bio)}</p>` : ''}<div class="row-actions" style="margin-top:8px"><button class="btn btn-sm" data-action="adm-edit-barber:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-barber:${x.id}">Delete</button></div></div></div>`).join('')}</div></div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Team (${db.barbers.length})</h3><div class="auth-actions">${ioButtons('barbers', true)}${hasPerm('staff_data.manage') ? button('+ Add Barber', 'adm-add-barber', 'btn btn-gold btn-sm') : ''}</div></div><div class="grid grid-4">${db.barbers.map(x => `<div class="card"><img class="barber-photo" src="${esc(x.photo)}" alt="${esc(x.name)}" loading="lazy"><div class="barber-info"><h3>${esc(x.name)}</h3><p>${esc(x.role)} · ${esc(branch(x.branch).name)}</p><p class="small muted">${x.services.map(s => esc(service(s).name)).join(' · ')}</p>${x.bio ? `<p class="small muted">${esc(x.bio)}</p>` : ''}${hasPerm('staff_data.manage') ? `<div class="row-actions" style="margin-top:8px"><button class="btn btn-sm" data-action="adm-edit-barber:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-barber:${x.id}">Delete</button></div>` : ''}</div></div>`).join('')}</div></div>`;
 }
 
 function admBarberForm(id) {
@@ -125,7 +167,7 @@ function admBarberForm(id) {
 
 // ---------- Services ----------
 function admServices(top) {
-  return top + `<div class="panel"><div class="panel-head"><h3>Services & Pricing</h3><div class="auth-actions">${ioButtons('services', true)}${button('+ Add Service', 'adm-add-service', 'btn btn-gold btn-sm')}</div></div>${db.services.map(x => `<div class="service-row">${x.image ? `<img class="service-thumb" src="${esc(x.image)}" alt="">` : `<span class="service-icon">${x.icon}</span>`}<div class="service-text"><strong>${esc(x.name)}</strong><small>${esc(x.desc || '')} · ${x.duration} min · ${x.branches.map(b => esc(branch(b).name)).join(', ') || 'all branches'}</small></div><b>${money(x.price)}</b><div class="row-actions"><button class="btn btn-sm" data-action="adm-edit-service:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-service:${x.id}">Delete</button></div></div>`).join('')}</div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Services & Pricing</h3><div class="auth-actions">${ioButtons('services', true)}${hasPerm('staff_data.manage') ? button('+ Add Service', 'adm-add-service', 'btn btn-gold btn-sm') : ''}</div></div>${db.services.map(x => `<div class="service-row">${x.image ? `<img class="service-thumb" src="${esc(x.image)}" alt="">` : `<span class="service-icon">${x.icon}</span>`}<div class="service-text"><strong>${esc(x.name)}</strong><small>${esc(x.desc || '')} · ${x.duration} min · ${x.branches.map(b => esc(branch(b).name)).join(', ') || 'all branches'}</small></div><b>${money(x.price)}</b>${hasPerm('staff_data.manage') ? `<div class="row-actions"><button class="btn btn-sm" data-action="adm-edit-service:${x.id}">Edit</button><button class="btn btn-sm" data-action="adm-del-service:${x.id}">Delete</button></div>` : ''}</div>`).join('')}</div>`;
 }
 
 function admServiceForm(id) {
@@ -183,7 +225,7 @@ function admReports(f, top) {
 // ---------- Settings ----------
 function admSettings(top) {
   const s = db.settings || {};
-  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Salon name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">WhatsApp number</label><input class="field" name="whatsapp" value="${esc(s.whatsapp || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div></div><button class="btn btn-gold">Save Settings</button></form>
+  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Salon name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">WhatsApp number</label><input class="field" name="whatsapp" value="${esc(s.whatsapp || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div><div class="form-group"><label class="form-label">Logo URL (optional — replaces the ⚒ icon)</label><input class="field" name="logo" value="${esc(s.logo || '')}" placeholder="/uploads/logo.png or https://…"></div><div class="form-group"><label class="form-label">Facebook URL</label><input class="field" name="fb" value="${esc((s.social || {}).facebook || '')}" placeholder="https://facebook.com/…"></div><div class="form-group"><label class="form-label">Instagram URL</label><input class="field" name="ig" value="${esc((s.social || {}).instagram || '')}" placeholder="https://instagram.com/…"></div><div class="form-group"><label class="form-label">TikTok URL</label><input class="field" name="tt" value="${esc((s.social || {}).tiktok || '')}" placeholder="https://tiktok.com/@…"></div></div><button class="btn btn-gold">Save Settings</button></form>
   <h3 style="margin-top:30px">Data</h3><div class="auth-actions">${button('Export Data (JSON)', 'adm-export-json', 'btn')}${button('Reset All Data', 'reset', 'btn')}</div><p class="muted small" style="margin-top:16px">Business details appear on the Contact page. Export downloads a backup of all local data.</p></div>`;
 }
 
@@ -206,10 +248,24 @@ function admExportJSON() {
 }
 
 // ---------- Events ----------
+// Decline always asks for a reason — intercept before the prototype's instant handler
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action^="decline:"]');
+  if (!el || page !== 'admin') return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  admDeclineModal(el.dataset.action.split(':')[1]);
+}, true);
+
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
-  if (c === 'adm-logout') { try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_staff'); fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}', credentials: 'same-origin' }).catch(() => {}); } catch (x) {} location.href = page === 'admin' ? 'admin.html' : 'login.html'; return; }
+  if (c === 'adm-logout') { try { sessionStorage.removeItem('gents_auth'); sessionStorage.removeItem('gents_staff'); fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}', credentials: 'same-origin' }).catch(() => {}); } catch (x) {} location.href = page === 'admin' ? 'admin' : 'login'; return; }
+  if (c === 'adm-add-branch' || c === 'adm-edit-branch' || c === 'adm-del-branch') { if (!hasPerm('branches.manage')) return toast('No permission.'); }
+  if (c === 'adm-add-barber' || c === 'adm-edit-barber' || c === 'adm-del-barber' || c === 'adm-add-service' || c === 'adm-edit-service' || c === 'adm-del-service') { if (!hasPerm('staff_data.manage')) return toast('No permission.'); }
+  if (c === 'adm-complete' && !hasPerm('bookings.complete')) return toast('No permission.');
+  if (c === 'adm-cancel-booking' && !hasPerm('bookings.cancel')) return toast('No permission.');
+  if (c === 'adm-del-booking' && !hasPerm('bookings.delete')) return toast('No permission.');
+  if (c === 'adm-pay' && !hasPerm('bookings.pay')) return toast('No permission.');
   if (c === 'adm-add-branch') return admBranchForm();
   if (c === 'adm-edit-branch') return admBranchForm(v);
   if (c === 'adm-add-barber') return admBarberForm();
@@ -221,6 +277,9 @@ document.addEventListener('click', e => {
   if (c === 'adm-day') return admDay(v);
   if (c === 'adm-cal') { admCalOff += v === 'next' ? 1 : v === 'prev' ? -1 : 0; if (v === 'today') admCalOff = 0; return render(); }
   if (c === 'adm-status') { admStatusF = v; return render(); }
+  if (c === 'req-tab') { reqTab = v; return render(); }
+  if (c === 'req-pay') { admPayF = v; return render(); }
+  if (c === 'adm-pay') return admPayModal(v);
   if (c === 'adm-range') { admRange = v === 'all' ? 'all' : Number(v); return render(); }
   if (c === 'adm-complete') { const b = db.bookings.find(x => x.id === v); if (b) { b.status = 'Completed'; db.notifications.unshift('Booking ' + b.id + ' completed.'); save(); toast('Booking marked completed.'); render(); } return; }
   if (c === 'adm-cancel-booking') { const b = db.bookings.find(x => x.id === v); if (!b) return; if (!confirm('Cancel this booking?')) return; b.status = 'Cancelled'; save(); toast('Booking cancelled.'); closeModal(); render(); return; }
@@ -228,8 +287,8 @@ document.addEventListener('click', e => {
   if (c === 'adm-del-branch') { const x = db.branches.find(b => b.id === v); if (!x) return; if (db.bookings.some(b => b.branch === v)) return toast('Cannot delete: this branch has bookings.'); if (db.barbers.some(b => b.branch === v)) return toast('Cannot delete: this branch still has barbers.'); if (!confirm('Delete branch "' + x.name + '"?')) return; db.branches = db.branches.filter(b => b.id !== v); save(); toast('Branch deleted.'); render(); return; }
   if (c === 'adm-del-barber') { const x = db.barbers.find(b => b.id === v); if (!x) return; if (db.bookings.some(b => b.barber === v)) return toast('Cannot delete: this barber has bookings.'); if (!confirm('Delete ' + x.name + '?')) return; db.barbers = db.barbers.filter(b => b.id !== v); save(); toast('Barber removed.'); render(); return; }
   if (c === 'adm-del-service') { const x = db.services.find(s => s.id === v); if (!x) return; if (db.bookings.some(b => b.service === v)) return toast('Cannot delete: this service has bookings.'); if (!confirm('Delete service "' + x.name + '"?')) return; db.services = db.services.filter(s => s.id !== v); save(); toast('Service deleted.'); render(); return; }
-  if (c === 'adm-export') return admExportCSV();
-  if (c === 'adm-export-json') return admExportJSON();
+  if (c === 'adm-export') { if (!hasPerm('reports.view')) return toast('No permission.'); return admExportCSV(); }
+  if (c === 'adm-export-json') { if (myPerms().includes('*')) return admExportJSON(); return toast('Primary admin only.'); }
 });
 
 document.addEventListener('input', e => {
@@ -243,6 +302,22 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
+  if (form.id === 'adm-decline-form') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const v = Object.fromEntries(new FormData(form));
+    const b = db.bookings.find(x => x.id === v.id); if (!b) return;
+    b.status = 'Declined'; b.declineReason = (v.reason || '').trim() || 'No reason given';
+    db.notifications.unshift('Booking ' + b.id + ' declined.');
+    save(); closeModal(); toast('Booking ' + b.id + ' declined.'); render(); return;
+  }
+  if (form.id === 'adm-pay-form') {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const v = Object.fromEntries(new FormData(form));
+    const b = db.bookings.find(x => x.id === v.id); if (!b) return;
+    b.payment = v.method || 'Paid'; b.paidAt = new Date().toISOString().slice(0, 10);
+    db.notifications.unshift('Booking ' + b.id + ' paid via ' + b.payment + '.');
+    save(); closeModal(); toast('Payment recorded for ' + b.id + '.'); render(); return;
+  }
   if (form.id === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
@@ -252,7 +327,7 @@ document.addEventListener('submit', async e => {
       try {
         const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-login', email: em, password: pw }), credentials: 'same-origin' });
         const j = await r.json();
-        if (j && j.ok) { try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = 'client.html'; return; }
+        if (j && j.ok) { try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = 'client'; return; }
         if (r.status === 401) { toast('Invalid email or password.'); return; }
       } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
     }
@@ -262,14 +337,14 @@ document.addEventListener('submit', async e => {
       const j = await r.json();
       if (j && j.ok) {
         try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', j.staff && j.staff.id || '') } catch (x) {}
-        bootRemote(); location.href = 'admin.html'; return;
+        bootRemote(); location.href = 'admin'; return;
       }
       if (r.status === 401) { toast('Invalid admin credentials.'); return; }
     } catch (x) { /* backend unreachable — fall through to local check */ }
     const s = staffAll().find(x => (x.email || '').toLowerCase() === em.toLowerCase());
     if (!s || s.password !== pw || s.status === 'suspended') { toast('Invalid admin credentials.'); return; }
     try { sessionStorage.setItem('gents_auth', 'admin'); sessionStorage.setItem('gents_staff', s.id) } catch (x) {}
-    location.href = 'admin.html'; return;
+    location.href = 'admin'; return;
   }
   if (form.id === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
@@ -293,7 +368,7 @@ document.addEventListener('submit', async e => {
   }
   if (form.id === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address };
+    db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address, logo: v.logo || '', social: { facebook: v.fb || '', instagram: v.ig || '', tiktok: v.tt || '' } };
     save(); toast('Settings saved.'); return;
   }
 });

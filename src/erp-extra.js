@@ -7,27 +7,103 @@
 let erpTab = 'overview', aiLog = [];
 const ERPTABS = [['overview', 'Overview'], ['transactions', 'Income & Expenses'], ['payroll', 'Payroll'], ['petty', 'Petty Cash'], ['hr', 'Promotions & HR'], ['assistant', 'AI Assistant']];
 
-// ---------- Permissions ----------
-const PERM_LABELS = {
-  dashboard: 'Dashboard', bookings: 'Bookings', calendar: 'Calendar',
-  branches: 'Branches', staff_data: 'Barbers & Services', content: 'Content & Media',
-  clients: 'Clients', reports: 'Reports', settings: 'Settings',
-  usermgmt: 'User Management', staffmgmt: 'Staff Management', erp: 'Accounting & ERP'
-};
+// ---------- Permissions (granular RBAC) ----------
+// [group, [[permKey, label], ...]] — every privilege is a single component.
+const PERM_GROUPS = [
+  ['Dashboard', [['dashboard.view', 'View dashboard']]],
+  ['Bookings & Requests', [
+    ['bookings.view', 'View bookings'], ['bookings.create', 'Create walk-ins'],
+    ['bookings.approve', 'Approve requests'], ['bookings.decline', 'Decline requests (with reason)'],
+    ['bookings.complete', 'Mark completed'], ['bookings.cancel', 'Cancel bookings'],
+    ['bookings.delete', 'Delete bookings'], ['bookings.pay', 'Record payments'],
+    ['bookings.export', 'Import / Export data'], ['requests.view', 'Booking Requests page'],
+    ['calendar.view', 'Calendar page']]],
+  ['Branches', [['branches.view', 'View branches'], ['branches.manage', 'Add / edit / delete branches']]],
+  ['Barbers & Services', [['staff_data.view', 'View barbers & services'], ['staff_data.manage', 'Add / edit / delete barbers & services']]],
+  ['Content & Media', [['content.view', 'View content'], ['content.manage', 'Edit hero banners & gallery']]],
+  ['Clients', [['clients.view', 'View client profiles'], ['clients.manage', 'Manage client profiles']]],
+  ['Membership & Wallet', [
+    ['membership.view', 'View membership'], ['membership.tiers', 'Manage tiers'],
+    ['membership.members', 'Manage members'], ['membership.wallets', 'Wallets & top-up approvals'],
+    ['membership.giftcards', 'Manage gift cards'], ['membership.rewards', 'Client rewards']]],
+  ['Reports', [['reports.view', 'View reports']]],
+  ['User Management', [['usermgmt.view', 'View client directory'], ['usermgmt.manage', 'Add / edit client profiles']]],
+  ['Staff & Roles', [['staffmgmt.view', 'View staff'], ['staffmgmt.manage', 'Manage staff, permissions & roles']]],
+  ['Accounting & ERP', [
+    ['erp.view', 'View ERP'], ['erp.transactions', 'Income & expenses'], ['erp.payroll', 'Payroll'],
+    ['erp.petty', 'Petty cash'], ['erp.hr', 'HR & promotions'], ['erp.assistant', 'AI assistant'],
+    ['erp.manage', 'Add entries / run payroll / settings']]],
+  ['Settings', [['settings.manage', 'Edit site settings']]]
+];
 const PERM_MAP = {
-  overview: 'dashboard', bookings: 'bookings', calendar: 'calendar',
-  branches: 'branches', barbers: 'staff_data', services: 'staff_data',
-  content: 'content', clients: 'clients', reports: 'reports', settings: 'settings',
-  users: 'usermgmt', staff: 'staffmgmt', erp: 'erp'
+  overview: 'dashboard.view', bookings: 'bookings.view', requests: 'requests.view', calendar: 'calendar.view',
+  branches: 'branches.view', barbers: 'staff_data.view', services: 'staff_data.view',
+  content: 'content.view', clients: 'clients.view', membership: 'membership.view', reports: 'reports.view',
+  users: 'usermgmt.view', staff: 'staffmgmt.view', erp: 'erp.view', settings: 'settings.manage'
+};
+// Legacy module keys → granular expansion (keep in sync with api/lib.php)
+const LEGACY_PERM_MAP = {
+  dashboard: ['dashboard.view'],
+  bookings: ['bookings.view', 'bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'bookings.delete', 'bookings.pay', 'bookings.export', 'requests.view', 'calendar.view'],
+  calendar: ['calendar.view'],
+  branches: ['branches.view', 'branches.manage'],
+  staff_data: ['staff_data.view', 'staff_data.manage'],
+  content: ['content.view', 'content.manage'],
+  clients: ['clients.view', 'clients.manage'],
+  membership: ['membership.view', 'membership.tiers', 'membership.members', 'membership.wallets', 'membership.giftcards', 'membership.rewards'],
+  reports: ['reports.view'],
+  settings: ['settings.manage'],
+  usermgmt: ['usermgmt.view', 'usermgmt.manage'],
+  staffmgmt: ['staffmgmt.view', 'staffmgmt.manage'],
+  erp: ['erp.view', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr', 'erp.assistant', 'erp.manage']
 };
 const STAFF_SEED = [{ id: 'admin1', username: 'Munyah', name: 'Munyah', email: 'munyah777@gmail.com', password: '@@Griezmann177#$', role: 'Super Admin', permissions: '*', protected: true, status: 'active', salary: 0, createdAt: '2026-01-01' }];
 const ROLES = ['Receptionist', 'Manager', 'Super Admin'];
 
 function safeSS(k) { try { return sessionStorage.getItem(k) } catch (e) { return null } }
-function staffAll() { if (!Array.isArray(db.staff)) db.staff = JSON.parse(JSON.stringify(STAFF_SEED)); return db.staff; }
+function staffAll() { if (!Array.isArray(db.staff)) db.staff = JSON.parse(JSON.stringify(STAFF_SEED)); if (!Array.isArray(db.roles)) db.roles = roleSeeds(); return db.staff; }
+function roleSeeds() {
+  return [
+    { id: 'rol-recep', name: 'Receptionist', perms: ['bookings.view', 'bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'requests.view', 'calendar.view', 'clients.view', 'branches.view', 'staff_data.view', 'content.view'], createdAt: '2026-01-01' },
+    { id: 'rol-mgr', name: 'Manager', perms: ['dashboard.view', 'bookings.view', 'bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'bookings.pay', 'bookings.export', 'requests.view', 'calendar.view', 'branches.view', 'branches.manage', 'staff_data.view', 'staff_data.manage', 'content.view', 'content.manage', 'clients.view', 'clients.manage', 'membership.view', 'membership.tiers', 'membership.members', 'membership.wallets', 'membership.giftcards', 'membership.rewards', 'reports.view', 'usermgmt.view', 'usermgmt.manage', 'staffmgmt.view', 'erp.view', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr', 'erp.assistant', 'erp.manage'], createdAt: '2026-01-01' }
+  ];
+}
 function admMe() { const l = staffAll(); return l.find(s => s.id === safeSS('gents_staff')) || l[0] || null; }
-function myPerms() { const m = admMe(); if (!m) return []; return m.permissions === '*' ? ['*'] : (m.permissions || []); }
-function admCan(tab) { const p = myPerms(); if (p.includes('*')) return true; const need = PERM_MAP[tab]; return need ? p.includes(need) : false; }
+function expandPerms(list) { const out = new Set(); (list || []).forEach(p => (LEGACY_PERM_MAP[p] || [p]).forEach(x => out.add(x))); return [...out]; }
+function myPerms() {
+  const m = admMe(); if (!m) return [];
+  if (m.permissions === '*') return ['*'];
+  const list = [...(m.permissions || [])];
+  const rid = m.roleId || '';
+  const r = (db.roles || []).find(x => x.id === rid || x.name === rid || x.name === m.role);
+  if (r) (r.perms || []).forEach(p => list.push(p));
+  return expandPerms(list);
+}
+function hasPerm(p) {
+  const m = myPerms(); if (m.includes('*')) return true;
+  if (m.includes(p)) return true;
+  if (p.endsWith('.view')) { const mg = p.slice(0, -5) + '.manage'; if (m.includes(mg)) return true; }
+  return false;
+}
+function admCan(tab) { const need = PERM_MAP[tab]; return need ? hasPerm(need) : false; }
+const ERP_TAB_PERM = { overview: 'erp.view', transactions: 'erp.transactions', payroll: 'erp.payroll', petty: 'erp.petty', hr: 'erp.hr', assistant: 'erp.assistant' };
+function erpTabAllowed(t) { return hasPerm(ERP_TAB_PERM[t] || 'erp.view') || hasPerm('erp.manage'); }
+function erpCan(s) { return hasPerm('erp.' + s) || hasPerm('erp.manage'); }
+const IO_PERM = {
+  bookings: { exp: ['bookings.view', 'bookings.export'], imp: ['bookings.create', 'bookings.export'] },
+  branches: { exp: ['branches.view'], imp: ['branches.manage'] },
+  barbers: { exp: ['staff_data.view'], imp: ['staff_data.manage'] },
+  services: { exp: ['staff_data.view'], imp: ['staff_data.manage'] },
+  clients: { exp: ['usermgmt.view'], imp: ['usermgmt.manage'] },
+  customers: { exp: ['clients.view'] },
+  staff: { exp: ['staffmgmt.view'], imp: ['staffmgmt.manage'] },
+  transactions: { exp: ['erp.transactions'], imp: ['erp.manage'] },
+  payroll: { exp: ['erp.payroll'], imp: ['erp.manage'] },
+  petty: { exp: ['erp.petty'], imp: ['erp.manage'] },
+  calendar: { exp: ['calendar.view'] },
+  reports: { exp: ['reports.view'] }
+};
+function ioAllowed(ent, mode) { const d = IO_PERM[ent]; if (!d) return false; const list = mode === 'imp' ? (d.imp || []) : (d.exp || []); return list.some(hasPerm); }
 function acct() { if (!db.accounting) db.accounting = { openingBalance: 0, transactions: [], payroll: [], pettyFloat: 0, pettyCash: [], hrEvents: [] }; return db.accounting; }
 function clientProfiles() {
   if (!Array.isArray(db.clientProfiles)) {
@@ -51,8 +127,8 @@ function admUsers(top) {
   const list = clientProfiles().slice().sort((a, b) => a.name.localeCompare(b.name));
   const spend = {};
   db.bookings.forEach(b => { const k = b.phone || b.email || b.name; spend[k] = (spend[k] || 0) + (b.status !== 'Cancelled' && b.status !== 'Declined' ? Number(service(b.service).price || 0) : 0); });
-  return top + `<div class="panel"><div class="panel-head"><h3>Client Profiles (${list.length})</h3><div class="auth-actions">${ioButtons('clients', true)}${button('+ Add Client', 'usr-add', 'btn btn-gold btn-sm')}</div></div>
-  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Bookings</th><th>Total Spend</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(c => { const bk = db.bookings.filter(b => (b.phone || b.email || b.name) === (c.phone || c.email || c.name)); const sp = spend[c.phone || c.email || c.name] || 0; const plat = sp >= 100; return `<tr><td><strong>${esc(c.name)}</strong>${plat ? ' <span class="badge status completed" style="font-size:9px">PLATINUM</span>' : ''}</td><td>${esc(c.phone || '—')}</td><td>${esc(c.email || '—')}</td><td>${bk.length}</td><td>${money(sp)}</td><td>${c.status === 'active' ? '<span class="badge status completed">Active</span>' : '<span class="badge status cancelled">Suspended</span>'}</td><td><div class="row-actions"><button class="btn btn-sm" data-action="usr-edit:${c.id}">Edit</button><button class="btn btn-sm" data-action="usr-del:${c.id}">Del</button></div></td></tr>`; }).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No client profiles yet.</div>'}</div></div>`;
+  return top + `<div class="panel"><div class="panel-head"><h3>Client Profiles (${list.length})</h3><div class="auth-actions">${ioButtons('clients', true)}${hasPerm('usermgmt.manage') ? button('+ Add Client', 'usr-add', 'btn btn-gold btn-sm') : ''}</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Bookings</th><th>Total Spend</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(c => { const bk = db.bookings.filter(b => (b.phone || b.email || b.name) === (c.phone || c.email || c.name)); const sp = spend[c.phone || c.email || c.name] || 0; const plat = sp >= 100; return `<tr><td><strong>${esc(c.name)}</strong>${plat ? ' <span class="badge status completed" style="font-size:9px">PLATINUM</span>' : ''}</td><td>${esc(c.phone || '—')}</td><td>${esc(c.email || '—')}</td><td>${bk.length}</td><td>${money(sp)}</td><td>${c.status === 'active' ? '<span class="badge status completed">Active</span>' : '<span class="badge status cancelled">Suspended</span>'}</td><td>${hasPerm('usermgmt.manage') ? `<div class="row-actions"><button class="btn btn-sm" data-action="usr-edit:${c.id}">Edit</button><button class="btn btn-sm" data-action="usr-del:${c.id}">Del</button></div>` : ''}</td></tr>`; }).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No client profiles yet.</div>'}</div></div>`;
 }
 
 function usrForm(id) {
@@ -66,27 +142,52 @@ function usrForm(id) {
 // =====================================================================
 function admStaff(top) {
   const list = staffAll().slice().sort((a, b) => a.name.localeCompare(b.name));
-  const permCount = s => s.permissions === '*' ? Object.keys(PERM_LABELS).length : (s.permissions || []).length;
-  return top + `<div class="panel"><div class="panel-head"><h3>Staff & Admins (${list.length})</h3><div class="auth-actions">${ioButtons('staff', admMe() && (admMe().permissions === '*' || myPerms().includes('staffmgmt'))) }${button('+ Add Staff', 'stf-add', 'btn btn-gold btn-sm')}</div></div>
-  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Salary</th><th>Permissions</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(s => `<tr><td><strong>${esc(s.name)}</strong>${s.protected ? ' <span class="badge status confirmed" style="font-size:9px">OWNER</span>' : ''}</td><td>${esc(s.username)}</td><td>${esc(s.email)}</td><td>${esc(s.role)}</td><td>${money(s.salary || 0)}</td><td>${s.permissions === '*' ? 'All' : permCount(s) + ' modules'}</td><td>${s.status === 'active' ? '<span class="badge status completed">Active</span>' : '<span class="badge status cancelled">Suspended</span>'}</td><td><div class="row-actions"><button class="btn btn-sm" data-action="stf-edit:${s.id}">Edit</button>${s.protected ? '' : `<button class="btn btn-sm" data-action="stf-perms:${s.id}">Perms</button><button class="btn btn-sm" data-action="stf-del:${s.id}">Del</button>`}</div></td></tr>`).join('')}</tbody></table></div></div>`;
+  const roles = db.roles || [];
+  const roleName = s => { const r = roles.find(x => x.id === (s.roleId || '') || x.name === (s.roleId || s.role)); return r ? r.name : (s.role || '—'); };
+  const permCount = s => s.permissions === '*' ? 'All' : expandPerms([...(s.permissions || []), ...((roles.find(x => x.id === (s.roleId || '') || x.name === (s.roleId || s.role)) || {}).perms || [])]).length + ' perms';
+  const canManage = hasPerm('staffmgmt.manage');
+  return top + admRolesPanel(canManage) + `<div class="panel"><div class="panel-head"><h3>Staff & Admins (${list.length})</h3><div class="auth-actions">${canManage ? ioButtons('staff', true) + button('+ Add Staff', 'stf-add', 'btn btn-gold btn-sm') : ''}</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Salary</th><th>Permissions</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(s => `<tr><td><strong>${esc(s.name)}</strong>${s.protected ? ' <span class="badge status confirmed" style="font-size:9px">OWNER</span>' : ''}</td><td>${esc(s.username)}</td><td>${esc(s.email)}</td><td>${esc(roleName(s))}</td><td>${money(s.salary || 0)}</td><td>${s.permissions === '*' ? 'All' : permCount(s)}</td><td>${s.status === 'active' ? '<span class="badge status completed">Active</span>' : '<span class="badge status cancelled">Suspended</span>'}</td><td><div class="row-actions">${canManage || s.id === (admMe() || {}).id ? `<button class="btn btn-sm" data-action="stf-edit:${s.id}">Edit</button>` : ''}${!s.protected && canManage ? `<button class="btn btn-sm" data-action="stf-perms:${s.id}">Perms</button><button class="btn btn-sm" data-action="stf-del:${s.id}">Del</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div></div>`;
+}
+
+function admRolesPanel(canManage) {
+  const roles = db.roles || [];
+  return `<div class="panel" style="margin-bottom:20px"><div class="panel-head"><h3>Roles & Permission Sets (${roles.length})</h3>${canManage ? `<div class="auth-actions">${button('+ New Role', 'role-add', 'btn btn-gold btn-sm')}</div>` : ''}</div>
+  <p class="muted small" style="margin-top:0">Bundle permissions into reusable roles — assign them when creating or editing staff.</p>
+  <div class="grid grid-3">${roles.map(r => `<div class="card" style="padding:14px"><strong>${esc(r.name)}</strong><div class="small muted" style="margin:6px 0">${(r.perms || []).length} permissions</div><div class="small muted" style="margin-bottom:8px">${(r.perms || []).slice(0, 4).map(p => esc(p)).join(' · ')}${(r.perms || []).length > 4 ? ' …' : ''}</div>${canManage ? `<div class="row-actions">${button('Edit', 'role-edit:' + r.id, 'btn btn-sm')}${button('Del', 'role-del:' + r.id, 'btn btn-sm')}</div>` : ''}</div>`).join('') || '<p class="muted">No custom roles yet.</p>'}</div></div>`;
+}
+
+function permPicker(sel) {
+  return PERM_GROUPS.map(([g, items]) => `<div data-pgroup="${esc(g)}" style="margin:12px 0"><div class="eyebrow" style="font-size:10px;display:flex;justify-content:space-between;align-items:center">${esc(g)} <label class="small muted" style="font-weight:400;text-transform:none;letter-spacing:0"><input type="checkbox" class="perm-all"> all</label></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 14px;margin-top:6px">${items.map(([k, l]) => `<label class="small" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" name="perm" value="${k}" ${sel.includes(k) ? 'checked' : ''} style="margin-top:2px"> <span>${l}</span></label>`).join('')}</div></div>`).join('');
+}
+
+function roleForm(id) {
+  const x = id ? (db.roles || []).find(r => r.id === id) : { name: '', perms: [] };
+  if (id && !x) return;
+  modal(id ? 'Edit Role' : 'New Role', `<form id="role-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Role name</label><input class="field" required name="name" value="${esc(x.name || '')}" placeholder="e.g. Junior Barber, Cashier"></div><div class="form-group"><label class="form-label">Permissions</label>${permPicker(x.perms || [])}</div><button class="btn btn-gold">${id ? 'Save Role' : 'Create Role'}</button></form>`);
 }
 
 function stfForm(id) {
-  const x = id ? staffAll().find(s => s.id === id) : { username: '', name: '', email: '', role: 'Receptionist', password: '', salary: 0, status: 'active' };
+  const x = id ? staffAll().find(s => s.id === id) : { username: '', name: '', email: '', role: '', roleId: '', password: '', salary: 0, status: 'active' };
   if (id && !x) return;
-  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Role</label><select class="field" name="role">${ROLES.map(r => `<option ${x.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Monthly salary (USD)</label><input class="field" type="number" min="0" step="0.01" name="salary" value="${x.salary || 0}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
+  const roleOpts = (db.roles || []).map(r => `<option value="${r.id}" ${x.roleId === r.id ? 'selected' : ''}>${esc(r.name)} (role)</option>`).join('');
+  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId"><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Monthly salary (USD)</label><input class="field" type="number" min="0" step="0.01" name="salary" value="${x.salary || 0}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
 }
 
 function stfPerms(id) {
   const s = staffAll().find(x => x.id === id); if (!s || s.protected) return;
-  const cur = s.permissions === '*' ? Object.keys(PERM_LABELS) : (s.permissions || []);
-  modal('Permissions — ' + esc(s.name), `<form id="stf-perms-form"><input type="hidden" name="id" value="${esc(id)}"><p class="muted small" style="margin-top:0">Select which modules this staff member can access.</p><div style="display:grid;gap:8px;margin:14px 0">${Object.entries(PERM_LABELS).map(([k, label]) => `<label class="small" style="display:flex;gap:10px;align-items:center"><input type="checkbox" name="perm" value="${k}" ${cur.includes(k) ? 'checked' : ''}> <b>${label}</b></label>`).join('')}</div><button class="btn btn-gold">Save Permissions</button></form>`);
+  const rid = s.roleId || '';
+  const r = (db.roles || []).find(x => x.id === rid || x.name === rid || x.name === s.role);
+  const rolePerms = r ? (r.perms || []) : [];
+  const cur = s.permissions === '*' ? PERM_GROUPS.flatMap(g => g[1]).map(i => i[0]) : expandPerms([...(s.permissions || []), ...rolePerms]);
+  modal('Permissions — ' + esc(s.name), `<form id="stf-perms-form"><input type="hidden" name="id" value="${esc(id)}"><p class="muted small" style="margin-top:0">${r ? 'Role <b>' + esc(r.name) + '</b> grants ' + rolePerms.length + ' permissions (shown checked) — uncheck to override, or add extras.' : 'Select which privileges this staff member has — anything unchecked simply won\'t appear on their dashboard.'}</p>${permPicker(cur)}<button class="btn btn-gold">Save Permissions</button></form>`);
 }
 
 // =====================================================================
 //  ACCOUNTING & ERP
 // =====================================================================
 function admErp(top) {
+  if (!erpTabAllowed(erpTab)) erpTab = 'overview';
   const a = acct();
   const inc = incTotal(), exp = expTotal(), net = inc - exp;
   return erpTab === 'transactions' ? erpTransactions(top) : erpTab === 'payroll' ? erpPayroll(top) : erpTab === 'petty' ? erpPetty(top) : erpTab === 'hr' ? erpHr(top) : erpTab === 'assistant' ? erpAssistant(top) : erpOverview(a, inc, exp, net, top);
@@ -111,17 +212,17 @@ function erpOverview(a, inc, exp, net, top) {
   const chart = months.map((m, i) => `<div class="bar" style="flex-direction:column;align-items:center;justify-content:flex-end;height:150px;gap:4px"><div style="display:flex;gap:3px;align-items:flex-end;height:120px"><i title="Income ${money0(inM[i].n)}" style="width:12px;background:var(--gold);border-radius:3px 3px 0 0;height:${Math.max(2, inM[i].n / maxV * 110)}px"></i><i title="Expense ${money0(exM[i].n)}" style="width:12px;background:#c0392b;border-radius:3px 3px 0 0;height:${Math.max(2, exM[i].n / maxV * 110)}px"></i></div><span style="font-size:9px;color:var(--muted)">${m.label}</span></div>`).join('');
   const recent = a.transactions.slice().sort((x, y) => (y.date || '').localeCompare(x.date || '')).slice(0, 6);
   return `<div class="dash-top"><div><div class="eyebrow">FINANCE</div><h1>Accounting & ERP</h1><p class="muted">Income, expenses, payroll, petty cash and HR — all in one place.</p></div></div>
-  <div class="segmented" style="margin-bottom:20px">${ERPTABS.map(([k, t]) => `<button class="pill ${erpTab === k ? 'active' : ''}" data-action="erp-tab:${k}">${t}</button>`).join('')}</div>
+  <div class="segmented" style="margin-bottom:20px">${ERPTABS.filter(([k]) => erpTabAllowed(k)).map(([k, t]) => `<button class="pill ${erpTab === k ? 'active' : ''}" data-action="erp-tab:${k}">${t}</button>`).join('')}</div>
   <div class="stat-grid">${stats.map(([i, n, t]) => `<div class="stat"><span class="stat-icon">${i}</span><div class="number" style="font-size:20px">${n}</div><div class="small">${t}</div></div>`).join('')}</div>
   <div class="dash-grid"><div class="panel"><div class="panel-head"><h3>Income vs Expenses · 6 months</h3><span class="small muted"><i style="display:inline-block;width:9px;height:9px;background:var(--gold);border-radius:2px"></i> income &nbsp;<i style="display:inline-block;width:9px;height:9px;background:#c0392b;border-radius:2px"></i> expense</span></div><div class="chart">${chart}</div></div>
-  <div class="panel"><div class="panel-head"><h3>Opening Balance & Quick Actions</h3></div><form id="erp-opening" class="form-group" style="display:flex;gap:8px;align-items:end;margin-bottom:14px"><input class="field" type="number" step="0.01" name="opening" value="${a.openingBalance || 0}" style="max-width:160px"><button class="btn btn-sm">Set</button></form><div class="grid grid-3">${button('+ Income', 'erp-addtx:income', 'btn')}${button('+ Expense', 'erp-addtx:expense', 'btn')}${button('Run Payroll', 'erp-payroll-run', 'btn')}</div></div></div>
+  <div class="panel"><div class="panel-head"><h3>Opening Balance & Quick Actions</h3></div><form id="erp-opening" class="form-group" style="display:flex;gap:8px;align-items:end;margin-bottom:14px"><input class="field" type="number" step="0.01" name="opening" value="${a.openingBalance || 0}" style="max-width:160px"><button class="btn btn-sm">Set</button></form><div class="grid grid-3">${erpCan('transactions') ? button('+ Income', 'erp-addtx:income', 'btn') + button('+ Expense', 'erp-addtx:expense', 'btn') : ''}${erpCan('payroll') ? button('Run Payroll', 'erp-payroll-run', 'btn') : ''}</div></div></div>
   <div class="panel"><div class="panel-head"><h3>Recent Transactions</h3><button class="btn btn-sm" data-action="erp-tab:transactions">View all</button></div>${recent.map(t => `<div class="data-line"><span class="muted">${esc(t.date)} · ${esc(t.description || t.category)}</span><b style="color:${t.type === 'income' ? 'var(--gold)' : '#e08a8a'}">${t.type === 'income' ? '+' : '−'}${money(t.amount)}</b></div>`).join('') || '<p class="muted">No transactions yet.</p>'}</div>`;
 }
 
 function erpTransactions(top) {
   const list = txList().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const cats = [...new Set(txList().map(t => t.category).filter(Boolean))];
-  return top + `<div class="panel"><div class="panel-head"><h3>Transactions (${list.length})</h3><div class="auth-actions">${button('+ Income', 'erp-addtx:income', 'btn btn-gold btn-sm')}${button('+ Expense', 'erp-addtx:expense', 'btn btn-sm')}${ioButtons('transactions', true)}</div></div>
+  return top + `<div class="panel"><div class="panel-head"><h3>Transactions (${list.length})</h3><div class="auth-actions">${erpCan('transactions') ? button('+ Income', 'erp-addtx:income', 'btn btn-gold btn-sm') + button('+ Expense', 'erp-addtx:expense', 'btn btn-sm') : ''}${ioButtons('transactions', true)}</div></div>
   ${cats.length ? `<div class="adm-filters"><div class="segmented">${['all', ...cats].map(c => `<button class="pill ${admTxCat === c ? 'active' : ''}" data-action="erp-cat:${c}">${c === 'all' ? 'All' : esc(c)}</button>`).join('')}</div></div>` : ''}
   <div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Branch</th><th>Amount</th></tr></thead><tbody>${list.filter(t => admTxCat === 'all' || t.category === admTxCat).map(t => `<tr><td>${esc(t.date)}</td><td>${t.type === 'income' ? '<span class="badge status confirmed">Income</span>' : '<span class="badge status declined">Expense</span>'}</td><td>${esc(t.category)}</td><td>${esc(t.description || '—')}</td><td>${esc(branch(t.branch).name)}</td><td style="color:${t.type === 'income' ? 'var(--gold)' : '#e08a8a'}">${t.type === 'income' ? '+' : '−'}${money(t.amount)}</td></tr>`).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No transactions yet.</div>'}</div>
   <p class="muted small" style="margin-top:12px">Totals — Income: <b style="color:var(--gold)">${money(incTotal())}</b> · Expenses: <b style="color:#e08a8a">${money(expTotal())}</b> · Net: <b>${money(incTotal() - expTotal())}</b></p></div>`;
@@ -136,7 +237,7 @@ function txForm(type) {
 function erpPayroll(top) {
   const a = acct();
   const list = a.payroll.slice().sort((x, y) => (y.month || '').localeCompare(x.month || ''));
-  return top + `<div class="panel"><div class="panel-head"><h3>Payroll</h3><div class="auth-actions">${button('Run Payroll', 'erp-payroll-run', 'btn btn-gold btn-sm')}${ioButtons('payroll', true)}</div></div>
+  return top + `<div class="panel"><div class="panel-head"><h3>Payroll</h3><div class="auth-actions">${erpCan('payroll') ? button('Run Payroll', 'erp-payroll-run', 'btn btn-gold btn-sm') : ''}${ioButtons('payroll', true)}</div></div>
   <p class="muted small" style="margin-top:0">Run payroll generates a payslip for every active staff member based on their monthly salary.</p>
   <div class="table-wrap"><table><thead><tr><th>Payslip</th><th>Staff</th><th>Role</th><th>Month</th><th>Gross</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th></th></tr></thead><tbody>${list.map(p => `<tr><td>${esc(p.id)}</td><td>${esc(p.name)}</td><td>${esc(p.role)}</td><td>${esc(p.month)}</td><td>${money(p.gross)}</td><td>${money(p.deductions || 0)}</td><td><b>${money(p.net)}</b></td><td>${p.status === 'paid' ? '<span class="badge status completed">Paid</span>' : '<span class="badge status pending">Pending</span>'}</td><td><div class="row-actions"><button class="btn btn-sm" data-action="erp-payslip:${p.id}">Payslip</button>${p.status === 'pending' ? `<button class="btn btn-sm" data-action="erp-pay-paid:${p.id}">Mark Paid</button>` : ''}</div></td></tr>`).join('')}</tbody></table>${list.length ? '' : '<div class="empty">No payslips yet — run payroll to generate them.</div>'}</div></div>`;
 }
@@ -232,7 +333,7 @@ const IO = {
   reports: { title: 'Reports Summary', headers: ['Metric', 'Value'], rows: () => [['Total bookings', db.bookings.length], ['Revenue (confirmed+completed)', db.bookings.filter(b => b.status === 'Confirmed' || b.status === 'Completed').reduce((s, b) => s + Number(service(b.service).price || 0), 0).toFixed(2)], ['Pending', db.bookings.filter(b => b.status === 'Pending').length], ['Income (ERP)', incTotal().toFixed(2)], ['Expenses (ERP)', expTotal().toFixed(2)], ['Net profit', (incTotal() - expTotal()).toFixed(2)]], imp: false }
 };
 
-function ioButtons(entity, canImport) { const d = IO[entity]; if (!d) return ''; return `<span class="io-bar">${button('CSV', 'io-exp:' + entity + ':csv', 'btn btn-sm')}${button('Excel', 'io-exp:' + entity + ':xlsx', 'btn btn-sm')}${button('PDF', 'io-exp:' + entity + ':pdf', 'btn btn-sm')}${canImport && d.imp ? button('Import', 'io-imp:' + entity, 'btn btn-sm') : ''}</span>`; }
+function ioButtons(entity, canImport) { const d = IO[entity]; if (!d || !ioAllowed(entity, 'exp')) return ''; return `<span class="io-bar">${button('CSV', 'io-exp:' + entity + ':csv', 'btn btn-sm')}${button('Excel', 'io-exp:' + entity + ':xlsx', 'btn btn-sm')}${button('PDF', 'io-exp:' + entity + ':pdf', 'btn btn-sm')}${canImport && d.imp && ioAllowed(entity, 'imp') ? button('Import', 'io-imp:' + entity, 'btn btn-sm') : ''}</span>`; }
 
 function csvEscape(v) { return '"' + String(v ?? '').replace(/"/g, '""') + '"'; }
 async function doExport(entity, fmt) {
@@ -307,37 +408,57 @@ function importRows(entity, hdrs, data) {
 // =====================================================================
 //  EVENTS
 // =====================================================================
+// Group "all" checkbox toggles every permission in its group
+document.addEventListener('change', e => {
+  if (e.target.classList && e.target.classList.contains('perm-all')) {
+    const g = e.target.closest('[data-pgroup]');
+    if (g) g.querySelectorAll('input[name="perm"]').forEach(c => c.checked = e.target.checked);
+  }
+});
+
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, parts = a.split(':'), c = parts[0];
-  if (!['erp-', 'usr-', 'stf-', 'io-'].some(p => c.startsWith(p))) return;
+  if (!['erp-', 'usr-', 'stf-', 'io-', 'role-'].some(p => c.startsWith(p))) return;
   e.stopImmediatePropagation();
   const v = parts.slice(1).join(':');
 
+  // --- roles ---
+  if (c === 'role-add') { if (!hasPerm('staffmgmt.manage')) return toast('No permission.'); return roleForm(); }
+  if (c === 'role-edit') { if (!hasPerm('staffmgmt.manage')) return toast('No permission.'); return roleForm(v); }
+  if (c === 'role-del') {
+    if (!hasPerm('staffmgmt.manage')) return toast('No permission.');
+    const r = (db.roles || []).find(x => x.id === v); if (!r) return;
+    if (staffAll().some(s => s.roleId === v)) return toast('Role is assigned to staff — reassign them first.');
+    if (!confirm('Delete role "' + r.name + '"?')) return;
+    db.roles = (db.roles || []).filter(x => x.id !== v); save(); toast('Role deleted.'); render(); return;
+  }
+
   // --- tab switching ---
-  if (c === 'erp-tab') { erpTab = v; return render(); }
+  if (c === 'erp-tab') { if (!erpTabAllowed(v)) return toast('No permission for that section.'); erpTab = v; return render(); }
   if (c === 'erp-cat') { admTxCat = v; return render(); }
 
   // --- user management ---
-  if (c === 'usr-add') return usrForm();
-  if (c === 'usr-edit') return usrForm(v);
-  if (c === 'usr-del') { const x = clientProfiles().find(c => c.id === v); if (!x) return; if (!confirm('Delete client profile "' + x.name + '"?')) return; db.clientProfiles = clientProfiles().filter(c => c.id !== v); save(); toast('Client deleted.'); render(); return; }
+  if (c === 'usr-add') { if (!hasPerm('usermgmt.manage')) return toast('No permission.'); return usrForm(); }
+  if (c === 'usr-edit') { if (!hasPerm('usermgmt.manage')) return toast('No permission.'); return usrForm(v); }
+  if (c === 'usr-del') { if (!hasPerm('usermgmt.manage')) return toast('No permission.'); const x = clientProfiles().find(c => c.id === v); if (!x) return; if (!confirm('Delete client profile "' + x.name + '"?')) return; db.clientProfiles = clientProfiles().filter(c => c.id !== v); save(); toast('Client deleted.'); render(); return; }
 
   // --- staff management ---
-  if (c === 'stf-add') return stfForm();
-  if (c === 'stf-edit') return stfForm(v);
-  if (c === 'stf-perms') return stfPerms(v);
-  if (c === 'stf-del') { const x = staffAll().find(s => s.id === v); if (!x) return; if (x.protected) return toast('This account cannot be deleted.'); if (!confirm('Permanently delete ' + x.name + '?')) return; db.staff = staffAll().filter(s => s.id !== v); save(); toast('Staff removed.'); render(); return; }
+  if (c === 'stf-add') { if (!hasPerm('staffmgmt.manage')) return toast('No permission.'); return stfForm(); }
+  if (c === 'stf-edit') { if (!hasPerm('staffmgmt.manage') && v !== (admMe() || {}).id) return toast('No permission.'); return stfForm(v); }
+  if (c === 'stf-perms') { if (!hasPerm('staffmgmt.manage')) return toast('No permission.'); return stfPerms(v); }
+  if (c === 'stf-del') { if (!hasPerm('staffmgmt.manage')) return toast('No permission.'); const x = staffAll().find(s => s.id === v); if (!x) return; if (x.protected) return toast('This account cannot be deleted.'); if (!confirm('Permanently delete ' + x.name + '?')) return; db.staff = staffAll().filter(s => s.id !== v); save(); toast('Staff removed.'); render(); return; }
 
   // --- erp ---
-  if (c === 'erp-addtx') return txForm(v);
-  if (c === 'erp-payroll-run') return runPayroll();
-  if (c === 'erp-payslip') return payslip(v);
+  if (c === 'erp-addtx') { if (!erpCan('transactions')) return toast('No permission.'); return txForm(v); }
+  if (c === 'erp-payroll-run') { if (!erpCan('payroll')) return toast('No permission.'); return runPayroll(); }
+  if (c === 'erp-payslip') { if (!erpCan('payroll')) return toast('No permission.'); return payslip(v); }
   if (c === 'erp-payslip-pdf') { const p = acct().payroll.find(x => x.id === v); if (p) payslipPDF(p); return; }
-  if (c === 'erp-pay-paid') { const p = acct().payroll.find(x => x.id === v); if (p) { p.status = 'paid'; save(); toast('Payslip marked paid.'); closeModal(); render(); } return; }
-  if (c === 'erp-petty-add') return pettyForm();
-  if (c === 'erp-float') { const f = prompt('Set petty cash float amount (USD):', acct().pettyFloat || 0); if (f === null) return; acct().pettyFloat = Number(f) || 0; save(); toast('Float updated.'); render(); return; }
+  if (c === 'erp-pay-paid') { if (!erpCan('payroll')) return toast('No permission.'); const p = acct().payroll.find(x => x.id === v); if (p) { p.status = 'paid'; save(); toast('Payslip marked paid.'); closeModal(); render(); } return; }
+  if (c === 'erp-petty-add') { if (!erpCan('petty')) return toast('No permission.'); return pettyForm(); }
+  if (c === 'erp-float') { if (!erpCan('petty')) return toast('No permission.'); const f = prompt('Set petty cash float amount (USD):', acct().pettyFloat || 0); if (f === null) return; acct().pettyFloat = Number(f) || 0; save(); toast('Float updated.'); render(); return; }
   if (c.startsWith('erp-hr:')) {
+    if (!erpCan('hr')) return toast('No permission.');
     const [, act, sid] = a.split(':'); const s = staffAll().find(x => x.id === sid); if (!s || s.protected) return;
     const today = new Date().toISOString().slice(0, 10);
     if (act === 'promote' || act === 'demote') {
@@ -350,8 +471,8 @@ document.addEventListener('click', e => {
   }
 
   // --- import / export ---
-  if (c === 'io-exp') { const [, ent, fmt] = a.split(':'); doExport(ent, fmt); return; }
-  if (c === 'io-imp') { const ent = v; doImport(ent); return; }
+  if (c === 'io-exp') { const [, ent, fmt] = a.split(':'); if (!ioAllowed(ent, 'exp')) return toast('No permission.'); doExport(ent, fmt); return; }
+  if (c === 'io-imp') { const ent = v; if (!ioAllowed(ent, 'imp')) return toast('No permission.'); doImport(ent); return; }
 });
 
 document.addEventListener('submit', e => {
@@ -364,8 +485,17 @@ document.addEventListener('submit', e => {
   }
   if (form.id === 'stf-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: v.role, status: v.status, salary: Number(v.salary) || 0 }); if (v.password) x.password = v.password; } toast('Staff updated.'); }
-    else { staffAll().push({ id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), password: v.password, role: v.role, permissions: [], protected: false, status: v.status, salary: Number(v.salary) || 0, createdAt: new Date().toISOString().slice(0, 10) }); toast('Staff added — assign permissions from the Perms button.'); }
+    const roleId = v.roleId || '';
+    const roleName = roleId ? ((db.roles || []).find(r => r.id === roleId) || {}).name || '' : '';
+    if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: v.role || roleName, roleId, status: v.status, salary: Number(v.salary) || 0 }); if (v.password) x.password = v.password; } toast('Staff updated.'); }
+    else { staffAll().push({ id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), password: v.password, role: v.role || roleName, roleId, permissions: [], protected: false, status: v.status, salary: Number(v.salary) || 0, createdAt: new Date().toISOString().slice(0, 10) }); toast('Staff added — assign permissions from the Perms button.'); }
+    save(); closeModal(); render(); return;
+  }
+  if (form.id === 'role-form') {
+    e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
+    const perms = fd.getAll('perm');
+    if (v.id) { const r = (db.roles || []).find(x => x.id === v.id); if (r) { r.name = v.name; r.perms = perms; } toast('Role updated.'); }
+    else { if (!(db.roles || []).some(r => r.name.toLowerCase() === v.name.toLowerCase())) (db.roles = db.roles || []).push({ id: 'rol' + Date.now(), name: v.name, perms, createdAt: new Date().toISOString().slice(0, 10) }); else return toast('A role with that name exists.'); toast('Role created.'); }
     save(); closeModal(); render(); return;
   }
   if (form.id === 'stf-perms-form') {

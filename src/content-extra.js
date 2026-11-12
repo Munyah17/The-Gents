@@ -20,15 +20,20 @@ function ctMediaField(label, name, value, placeholder) {
     <div class="ct-preview" id="ct-preview-${name}">${value ? `<img src="${esc(value)}" alt="">` : ''}</div></div>`;
 }
 
+// ---------- Tab renderer (called by adminBody) ----------
+function admContent(top) {
+  return top + heroPanel() + galleryPanel();
+}
+
 // ---------- Hero banners ----------
 function heroPanel() {
   const slides = db.hero && db.hero.length ? db.hero : HE;
-  return `<div class="panel"><div class="panel-head"><h3>Hero Banners (${slides.length})</h3><div class="auth-actions">${button('+ Add Slide', 'ct-hero-add', 'btn btn-gold btn-sm')}</div></div>
+  return `<div class="panel"><div class="panel-head"><h3>Hero Banners (${slides.length})</h3><div class="auth-actions">${hasPerm('content.manage') ? button('+ Add Slide', 'ct-hero-add', 'btn btn-gold btn-sm') : ''}</div></div>
   <p class="muted small" style="margin-top:0">Slides appear in order on the homepage hero. The first slide shows on load.</p>
   <div class="ct-hero-list">${slides.map((s, i) => `<div class="ct-hero-item">
     <div class="ct-hero-img" style="background-image:url('${esc(s.photo || '')}')"></div>
     <div class="ct-hero-info"><strong>${esc(s.title || '(untitled)')}</strong><small class="muted">${esc(s.desc || '')}</small><small class="muted">Slide ${i + 1}</small></div>
-    <div class="row-actions"><button class="btn btn-sm" data-action="ct-hero-up:${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn btn-sm" data-action="ct-hero-down:${i}" ${i === slides.length - 1 ? 'disabled' : ''}>↓</button><button class="btn btn-sm" data-action="ct-hero-edit:${i}">Edit</button><button class="btn btn-sm" data-action="ct-hero-del:${i}">Del</button></div>
+    ${hasPerm('content.manage') ? `<div class="row-actions"><button class="btn btn-sm" data-action="ct-hero-up:${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn btn-sm" data-action="ct-hero-down:${i}" ${i === slides.length - 1 ? 'disabled' : ''}>↓</button><button class="btn btn-sm" data-action="ct-hero-edit:${i}">Edit</button><button class="btn btn-sm" data-action="ct-hero-del:${i}">Del</button></div>` : ''}
   </div>`).join('')}</div></div>`;
 }
 
@@ -46,12 +51,12 @@ function ctHeroForm(i) {
 function galleryPanel() {
   const items = db.gallery && db.gallery.length ? db.gallery : GE;
   const cats = [...new Set(items.map(x => x.category).filter(Boolean))];
-  return `<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>Gallery (${items.length})</h3><div class="auth-actions">${button('+ Add Image', 'ct-gal-add', 'btn btn-gold btn-sm')}</div></div>
+  return `<div class="panel" style="margin-top:24px"><div class="panel-head"><h3>Gallery (${items.length})</h3><div class="auth-actions">${hasPerm('content.manage') ? button('+ Add Image', 'ct-gal-add', 'btn btn-gold btn-sm') : ''}</div></div>
   <p class="muted small" style="margin-top:0">Categories: ${cats.map(c => `<span class="badge status confirmed" style="margin-right:4px">${esc(c)}</span>`).join('') || '—'}</p>
   <div class="ct-gal-grid">${items.map((g, i) => `<div class="ct-gal-item">
     <img src="${esc(g.url)}" alt="${esc(g.alt || '')}" loading="lazy">
     <div class="ct-gal-info"><strong>${esc(g.alt || '(no caption)')}</strong><small class="muted">${esc(g.category || 'Uncategorised')}</small></div>
-    <div class="row-actions"><button class="btn btn-sm" data-action="ct-gal-edit:${i}">Edit</button><button class="btn btn-sm" data-action="ct-gal-del:${i}">Delete</button></div>
+    ${hasPerm('content.manage') ? `<div class="row-actions"><button class="btn btn-sm" data-action="ct-gal-edit:${i}">Edit</button><button class="btn btn-sm" data-action="ct-gal-del:${i}">Delete</button></div>` : ''}
   </div>`).join('')}</div></div>`;
 }
 
@@ -80,6 +85,7 @@ function ctInUse(url) {
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
+  if (c.startsWith('ct-') && !hasPerm('content.manage')) return toast('No permission.');
   if (c === 'ct-pick') {
     e.preventDefault();
     const inp = document.getElementById('ct-file-' + v);

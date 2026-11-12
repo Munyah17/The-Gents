@@ -36,27 +36,24 @@ const reps = [
 
   // real navigation: map page names to files; branch pages use hash
   ["function navigate(p){page=p;window.scrollTo({top:0,behavior:'instant'});render()}",
-   "function navigate(p){if(p.startsWith('branch:')){location.href='branch.html#'+p.slice(7);return}const f={home:'index.html',services:'services.html',barbers:'barbers.html',gallery:'gallery.html',contact:'contact.html',login:'login.html',booking:'booking.html',client:'client.html',admin:'admin.html',confirmation:'booking.html'}[p]||'index.html';const fp=(location.pathname.split('/').pop()||'index.html');if(f===fp){page=p;window.scrollTo({top:0,behavior:'instant'});render()}else location.href=f}"],
+   "function navigate(p){if(p.startsWith('branch:')){location.href='branch#'+p.slice(7);return}const f={home:'index',services:'services',barbers:'barbers',gallery:'gallery',membership:'membership',contact:'contact',login:'login',booking:'booking',client:'client',admin:'admin',confirmation:'booking'}[p]||'index';const fp=(location.pathname.split('/').pop()||'index');if(f===fp){page=p;window.scrollTo({top:0,behavior:'instant'});render()}else location.href=f}"],
 
   // booking presets cross pages via sessionStorage
   ["if(cmd==='start-booking')return resetBooking()",
-   "if(cmd==='start-booking'){try{sessionStorage.removeItem('gents_booking_preset')}catch(e){}location.href='booking.html';return}"],
+   "if(cmd==='start-booking'){try{sessionStorage.removeItem('gents_booking_preset')}catch(e){}location.href='booking';return}"],
   ["if(cmd==='book-branch')return resetBooking({branch:val})",
-   "if(cmd==='book-branch'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:val}))}catch(e){}location.href='booking.html';return}"],
+   "if(cmd==='book-branch'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:val}))}catch(e){}location.href='booking';return}"],
   ["if(cmd==='book-service')return resetBooking({service:val})",
-   "if(cmd==='book-service'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({service:val}))}catch(e){}location.href='booking.html';return}"],
+   "if(cmd==='book-service'){try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({service:val}))}catch(e){}location.href='booking';return}"],
   ["if(cmd==='book-barber'){let b=barber(val);return resetBooking({branch:b.branch,barber:val})}",
-   "if(cmd==='book-barber'){let b=barber(val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,barber:val}))}catch(e){}location.href='booking.html';return}"],
+   "if(cmd==='book-barber'){let b=barber(val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,barber:val}))}catch(e){}location.href='booking';return}"],
   ["if(cmd==='rebook'){let b=db.bookings.find(x=>x.id===val);return resetBooking({branch:b.branch,service:b.service,barber:b.barber})}",
-   "if(cmd==='rebook'){let b=db.bookings.find(x=>x.id===val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,service:b.service,barber:b.barber}))}catch(e){}location.href='booking.html';return}"],
+   "if(cmd==='rebook'){let b=db.bookings.find(x=>x.id===val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,service:b.service,barber:b.barber}))}catch(e){}location.href='booking';return}"],
 
   // --- auth helper (session flag per role) ---
   ["const esc=(s)=>String(s??'')",
    "const auth=(r)=>{try{return sessionStorage.getItem('gents_auth')===r}catch(e){return false}};const esc=(s)=>String(s??'')"],
 
-  // --- header: drop Membership/My Bookings/Admin Demo, add Login ---
-  ["['gallery','Gallery'],['membership','Membership'],['contact','Contact']]",
-   "['gallery','Gallery'],['contact','Contact']]"],
   // Login becomes a button next to Book Now (nav-actions)
   ["<button class=\"btn btn-gold\" data-action=\"start-booking\">Book Now</button>",
    "<button class=\"btn\" data-page=\"login\">Login</button><button class=\"btn btn-gold\" data-action=\"start-booking\">Book Now</button>"],
@@ -64,15 +61,9 @@ const reps = [
 
   // --- footer: 4-column widget layout (markup lives in prototype.html footer()) ---
 
-  // --- home: remove membership promo section ---
-  ["<section class=\"section-tight\"><div class=\"member-section\"><div class=\"member-section-copy\"><div class=\"eyebrow\">THE GENT’S MEMBERSHIP</div><h2>More than a haircut.</h2><p>Exclusive benefits, priority booking and a better grooming experience.</p>${button('Explore Membership →','go:membership','btn btn-gold')}</div>${membershipCard()}</div></section>", ""],
-
-  // --- remove membership() page function ---
-  ["function membership(){return `<div class=\"shell\"><div class=\"page-head\"><div class=\"eyebrow\">THE GENT’S CLUB</div><h1>Membership</h1><p>Exclusive benefits for our loyal clients.</p></div><div class=\"member-section member-page-section\"><div class=\"member-section-copy\"><div class=\"eyebrow\">A LITTLE SOMETHING EXTRA</div><h2>More than a haircut.</h2><p>A premium experience, with benefits worth coming back for.</p><div class=\"member-benefits\"><span>✓ Member-only offers</span><span>✓ Priority booking</span><span>✓ Exclusive experiences</span><span>✓ Early access to new services</span></div>${button(db.membership?'Membership Requested ✓':'Join Membership →','join-membership','btn btn-gold')}<p class=\"muted small\" style=\"margin-top:18px\">Illustrative card and demo enquiry. Actual plans will be defined by The Gent’s.</p></div>${membershipCard()}</div></div>`}", ""],
-
-  // --- render map: drop membership, add login ---
+  // --- render map: keep membership, add login ---
   ["({home,services,barbers,gallery,membership,contact,booking:bookingPage,client,admin,confirmation:confirmPage})",
-   "({home,services,barbers,gallery,contact,booking:bookingPage,client,admin,login,confirmation:confirmPage})"],
+   "({home,services,barbers,gallery,membership,contact,booking:bookingPage,client,admin,login,confirmation:confirmPage})"],
 
   // --- page title: drop (Demo) suffix ---
   ["document.title=`The Gent’s · ${page.charAt(0).toUpperCase()+page.slice(1)} (Demo)`;",
@@ -80,10 +71,10 @@ const reps = [
 
   // --- login + loginCard functions (inserted before confirmPage) ---
   ["function confirmPage(){",
-   "function login(){return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class=\"shell\" style=\"max-width:560px\"><div class=\"page-panel\" style=\"margin:60px auto\"><div class=\"eyebrow\">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style=\"margin:12px 0 6px\">Sign In</h2><p class=\"muted\">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id=\"login-form\" data-role=\"${role}\"><div class=\"form-group\"><label class=\"form-label\">Email</label><input class=\"field\" type=\"email\" required name=\"email\" placeholder=\"you@example.com\"></div><div class=\"form-group\"><label class=\"form-label\">Password</label><input class=\"field\" type=\"password\" required name=\"password\" placeholder=\"Enter your password\"></div><button class=\"btn btn-gold\" type=\"submit\" style=\"width:100%\">Sign In →</button></form><p class=\"muted small\" style=\"margin-top:20px;text-align:center\">${admin?'Client? <a href=\"login.html\" style=\"color:var(--gold)\">Go to client login</a> · <a href=\"index.html\" style=\"color:var(--gold)\">Back to site</a>':'New here? <a href=\"booking.html\" style=\"color:var(--gold)\">Book an appointment</a>'}</p></div></div>`}function confirmPage(){"],
+   "function login(){return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class=\"shell\" style=\"max-width:560px\"><div class=\"page-panel\" style=\"margin:60px auto\"><div class=\"eyebrow\">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style=\"margin:12px 0 6px\">Sign In</h2><p class=\"muted\">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id=\"login-form\" data-role=\"${role}\"><div class=\"form-group\"><label class=\"form-label\">Email, name or pseudonym</label><input class=\"field\" type=\"text\" required name=\"email\" placeholder=\"you@example.com · Alex Demo · AD\"></div><div class=\"form-group\"><label class=\"form-label\">Password</label><input class=\"field\" type=\"password\" required name=\"password\" placeholder=\"Enter your password\"></div><button class=\"btn btn-gold\" type=\"submit\" style=\"width:100%\">Sign In →</button></form><p class=\"muted small\" style=\"margin-top:20px;text-align:center\">${admin?'':'New here? <a href=\"booking\" style=\"color:var(--gold)\">Book an appointment</a>'}</p></div></div>`}function confirmPage(){"],
 
   // --- client portal: auth gate, drop membership bits, de-demo ---
-  ["function client(){let list=", "function client(){if(!auth('client')){location.replace('login.html');return''}let list="],
+  ["function client(){let list=", "function client(){if(!auth('client')){location.replace('login');return''}let list="],
   [" Demo account: T. Moyo.", ""],
   ["Try the booking demo to add one.", "Try booking an appointment to add one."],
   ["<div class=\"page-panel\" style=\"margin-top:30px\"><h3>Membership</h3><p class=\"muted\">${db.membership?'Your membership enquiry has been recorded.':'Discover The Gent’s membership benefits.'}</p>${button('Explore Membership','go:membership')}</div>", ""],
@@ -98,7 +89,7 @@ const reps = [
 
   // --- business settings in seed data ---
   ["gallery:GE.map(x=>({...x}))}",
-   "gallery:GE.map(x=>({...x})),settings:{name:'The Gent’s',phone:'+263 77 601 1938',email:'admin@thegents.co.zw',whatsapp:'+263776011938',address:'Fife Avenue & Borrowdale, Harare'}}"],
+   "gallery:GE.map(x=>({...x})),settings:{name:'The Gent’s',phone:'+263 79 052 0449',email:'admin@thegents.co.zw',whatsapp:'+263 79 052 0449',address:'Kudu Corner & Five Avenue, Harare',logo:'/uploads/logo-the-gents.jpg',social:{facebook:'https://www.facebook.com/share/1E9i4XqKWj/',instagram:'https://www.instagram.com/gents_cut_and_shaves',tiktok:'https://www.tiktok.com/@thegentscutandshaves'}}}"],
 
   // --- de-demo remaining labels ---
   ["This is a demo: notifications are simulated.", "Notifications are simulated."],
@@ -109,8 +100,8 @@ const reps = [
   ["Add Demo Barber", "Add Barber"],
 
   // --- footer credit: link to Global Space Web ---
-  ["<small>© 2026 The Gent’s · Interactive concept only</small>",
-   "<small>© 2026 The Gent’s · Interactive concept only · Developed and Powered By <a href=\"https://www.globalspaceweb.co.zw\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--gold)\">Global Space Web</a></small>"],
+  ["<small>© 2026 The Gents Cut & Shave. All Rights Reserved.</small>",
+   "<small>© 2026 The Gents Cut & Shave. All Rights Reserved. Developed and Powered By <a href=\"https://www.globalspaceweb.co.zw\" target=\"_blank\" rel=\"noopener\" style=\"color:var(--gold)\">Global Space Web</a>. <a href=\"tel:+263773909307\" style=\"color:var(--gold)\">+263773909307</a></small>"],
 
   // --- remaining visible 'demo' strings ---
   ["Available times are illustrative and reflect demo bookings.", "Available times are illustrative."],
@@ -120,9 +111,6 @@ const reps = [
   ["Cancel this booking in the demo?", "Cancel this booking?"],
   ["Reset all demo data, bookings and changes?", "Reset all data, bookings and changes?"],
 
-  // --- dead membership card helper (page removed) ---
-  ["function membershipCard(){return `<div class=\"membership-card\" role=\"img\" aria-label=\"Illustration of The Gent’s membership card\"><div class=\"member-card-glow\"></div><div class=\"member-card-top\"><span class=\"member-card-mark\">✂</span><span>MEMBER</span></div><div class=\"member-card-brand\">The Gent’s</div><div class=\"member-card-caption\">BARBER & GENTS SALON</div><div class=\"member-card-bottom\"><span>THE GENT’S CLUB</span><span>✦ ✦ ✦</span></div></div>`}", ""],
-
   // --- booking submit signs the client in so 'My Bookings' works ---
   ["db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);save();return navigate('confirmation')",
    "db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);try{sessionStorage.setItem('gents_auth','client')}catch(e){}save();return navigate('confirmation')"],
@@ -131,14 +119,14 @@ const reps = [
   ["['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form']",
    "['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form','login-form']"],
   ["if(form.id==='contact-form'){db.contacts.push(v)",
-   "if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin.html':'client.html';return}if(form.id==='contact-form'){db.contacts.push(v)"],
+   "if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin':'client';return}if(form.id==='contact-form'){db.contacts.push(v)"],
 
   // --- loginCard: add Create account link for clients ---
   ["Book an appointment</a>'}", "Book an appointment</a> · <a href=\"#\" data-action=\"cl-register\" style=\"color:var(--gold)\">Create account</a>'}"],
 
   // --- client profile in seed data ---
-  ["address:'Fife Avenue & Borrowdale, Harare'}}",
-   "address:'Fife Avenue & Borrowdale, Harare'},clientProfile:{name:'T. Moyo',phone:'+263771234567',email:'tmoyo@example.com',favBranch:'',favBarber:''}}"],
+  ["tiktok:'https://www.tiktok.com/@thegentscutandshaves'}}",
+   "tiktok:'https://www.tiktok.com/@thegentscutandshaves'},clientProfile:{name:'T. Moyo',phone:'+263771234567',email:'tmoyo@example.com',favBranch:'',favBarber:''}}"],
 
   // --- fix: closest() matched <body data-page> on every click, causing a full
   // re-render that wiped form fields. Exclude document.body from matches. ---
@@ -147,7 +135,7 @@ const reps = [
 
   // init: resolve branch hash + pending booking preset before first render
   ["document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});render();",
-   "document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\\/?/,''));if(!h){page='home';location.replace('index.html')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking.html'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}bootRemote();render();"]
+   "document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\\/?/,''));if(!h){page='home';location.replace('index')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}bootRemote();render();"]
 ];
 
 for (const [a, b] of reps) {
@@ -160,8 +148,9 @@ const adminExtra = fs.readFileSync(path.join(ROOT, 'src', 'admin-extra.js'), 'ut
 const clientExtra = fs.readFileSync(path.join(ROOT, 'src', 'client-extra.js'), 'utf8');
 const erpExtra = fs.readFileSync(path.join(ROOT, 'src', 'erp-extra.js'), 'utf8');
 const contentExtra = fs.readFileSync(path.join(ROOT, 'src', 'content-extra.js'), 'utf8');
+const membershipExtra = fs.readFileSync(path.join(ROOT, 'src', 'membership-extra.js'), 'utf8');
 const adminCss = fs.readFileSync(path.join(ROOT, 'src', 'admin.css'), 'utf8');
-js = js.replace("document.addEventListener('submit',e=>{", () => adminExtra + "\n" + clientExtra + "\n" + erpExtra + "\n" + contentExtra + "\n" + "document.addEventListener('submit',e=>{");
+js = js.replace("document.addEventListener('submit',e=>{", () => adminExtra + "\n" + clientExtra + "\n" + erpExtra + "\n" + contentExtra + "\n" + membershipExtra + "\n" + "document.addEventListener('submit',e=>{");
 css += '\n' + adminCss;
 // Hero slide titles: single row, scales with viewport width
 css += '\n.slider-content h1{white-space:nowrap;font-size:clamp(15px,4.6vw,44px)}\n';
@@ -194,6 +183,7 @@ const pages = [
   ['services.html', 'services', 'Services'],
   ['barbers.html', 'barbers', 'Barbers'],
   ['gallery.html', 'gallery', 'Gallery'],
+  ['membership.html', 'membership', 'Membership'],
   ['contact.html', 'contact', 'Contact'],
   ['login.html', 'login', 'Login'],
   ['booking.html', 'booking', 'Book Appointment'],
