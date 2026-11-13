@@ -136,7 +136,8 @@ function dashboardFrame(role, content) {
   const navItems = admin ? items.filter(([key]) => admCan(key)) : items;
   const nav = navItems.map(([key, title, ico]) => `<button class="${selected === key ? 'active' : ''}" data-action="${admin ? 'admin-tab' : 'client-side'}:${key}">${ico} &nbsp; ${title}</button>`).join('');
   const out = `<button data-action="adm-logout">⇥ &nbsp; Sign Out</button>`;
-  return `<div class="dashboard"><aside class="side"><a class="brand" data-page="home"><div class="brand-icon">⚒</div><div><div class="brand-title">The Gent’s</div><div class="brand-sub">BARBER & GENTS GROOMING CENTER</div></div></a><div class="side-nav">${nav}${out}<button data-page="home">↗ &nbsp; Visit Website</button></div></aside><div><div class="dash-mobile">${nav}${out}</div><main class="dash-main">${content}</main></div></div>`;
+  const lg = (db.settings && db.settings.logo) || '';
+  return `<div class="dashboard"><aside class="side"><a class="brand" data-page="home">${lg ? `<img class="brand-logo" src="${esc(lg)}" alt="The Gent’s">` : `<div class="brand-icon">⚒</div>`}<div><div class="brand-title">The Gent’s</div><div class="brand-sub">BARBER & GENTS GROOMING CENTER</div></div></a><div class="side-nav">${nav}${out}<button data-page="home">↗ &nbsp; Visit Website</button></div></aside><div><div class="dash-mobile">${nav}${out}</div><main class="dash-main">${content}</main></div></div>`;
 }
 
 // ---------- Overview ----------
@@ -315,7 +316,7 @@ function admReports(f, top) {
 // ---------- Settings ----------
 function admSettings(top) {
   const s = db.settings || {};
-  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Grooming center name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">WhatsApp number</label><input class="field" name="whatsapp" value="${esc(s.whatsapp || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div><div class="form-group"><label class="form-label">Logo URL (optional — replaces the ⚒ icon)</label><input class="field" name="logo" value="${esc(s.logo || '')}" placeholder="/uploads/logo.png or https://…"></div><div class="form-group"><label class="form-label">Facebook URL</label><input class="field" name="fb" value="${esc((s.social || {}).facebook || '')}" placeholder="https://facebook.com/…"></div><div class="form-group"><label class="form-label">Instagram URL</label><input class="field" name="ig" value="${esc((s.social || {}).instagram || '')}" placeholder="https://instagram.com/…"></div><div class="form-group"><label class="form-label">TikTok URL</label><input class="field" name="tt" value="${esc((s.social || {}).tiktok || '')}" placeholder="https://tiktok.com/@…"></div></div><button class="btn btn-gold">Save Settings</button></form>
+  return top + `<div class="panel" style="max-width:640px"><div class="panel-head"><h3>Business Profile</h3></div><form id="adm-settings-form"><div class="form-grid"><div class="form-group"><label class="form-label">Grooming center name</label><input class="field" name="name" value="${esc(s.name || 'The Gent’s')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(s.phone || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">WhatsApp number</label><input class="field" name="whatsapp" value="${esc(s.whatsapp || '+263 77 601 1938')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(s.email || 'admin@thegents.co.zw')}"></div><div class="form-group"><label class="form-label">Address</label><input class="field" name="address" value="${esc(s.address || 'Fife Avenue & Borrowdale, Harare')}"></div>${ctMediaField('Logo (optional — replaces the ⚒ icon)', 'logo', s.logo, '/uploads/logo.png or https://…')}<div class="form-group"><label class="form-label">Facebook URL</label><input class="field" name="fb" value="${esc((s.social || {}).facebook || '')}" placeholder="https://facebook.com/…"></div><div class="form-group"><label class="form-label">Instagram URL</label><input class="field" name="ig" value="${esc((s.social || {}).instagram || '')}" placeholder="https://instagram.com/…"></div><div class="form-group"><label class="form-label">TikTok URL</label><input class="field" name="tt" value="${esc((s.social || {}).tiktok || '')}" placeholder="https://tiktok.com/@…"></div></div><button class="btn btn-gold">Save Settings</button></form>
   <h3 style="margin-top:30px">Data</h3><div class="auth-actions">${button('Export Data (JSON)', 'adm-export-json', 'btn')}${button('Reset All Data', 'reset', 'btn')}</div><p class="muted small" style="margin-top:16px">Business details appear on the Contact page. Export downloads a backup of all local data.</p></div>`;
 }
 
@@ -1376,7 +1377,8 @@ function ctInUse(url) {
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
-  if (c.startsWith('ct-') && !hasPerm('content.manage')) return toast('No permission.');
+  if (c.startsWith('ct-') && !(c === 'ct-pick' && v === 'logo') && !hasPerm('content.manage')) return toast('No permission.');
+  if (c === 'ct-pick' && v === 'logo' && !admCan('settings')) return toast('No permission.');
   if (c === 'ct-pick') {
     e.preventDefault();
     const inp = document.getElementById('ct-file-' + v);
@@ -1433,7 +1435,7 @@ document.addEventListener('change', async e => {
 // Live preview while typing/pasting a URL
 document.addEventListener('input', e => {
   const inp = e.target;
-  if (!inp.name || (inp.name !== 'photo' && inp.name !== 'url' && inp.name !== 'image')) return;
+  if (!inp.name || (inp.name !== 'photo' && inp.name !== 'url' && inp.name !== 'image' && inp.name !== 'logo')) return;
   const preview = document.getElementById('ct-preview-' + inp.name);
   if (preview) preview.innerHTML = inp.value ? `<img src="${esc(inp.value)}" alt="">` : '';
 });

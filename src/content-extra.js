@@ -85,7 +85,8 @@ function ctInUse(url) {
 document.addEventListener('click', async e => {
   const el = e.target.closest('[data-action]'); if (!el) return;
   const a = el.dataset.action, [c, ...p] = a.split(':'), v = p.join(':');
-  if (c.startsWith('ct-') && !hasPerm('content.manage')) return toast('No permission.');
+  if (c.startsWith('ct-') && !(c === 'ct-pick' && v === 'logo') && !hasPerm('content.manage')) return toast('No permission.');
+  if (c === 'ct-pick' && v === 'logo' && !admCan('settings')) return toast('No permission.');
   if (c === 'ct-pick') {
     e.preventDefault();
     const inp = document.getElementById('ct-file-' + v);
@@ -142,7 +143,7 @@ document.addEventListener('change', async e => {
 // Live preview while typing/pasting a URL
 document.addEventListener('input', e => {
   const inp = e.target;
-  if (!inp.name || (inp.name !== 'photo' && inp.name !== 'url' && inp.name !== 'image')) return;
+  if (!inp.name || (inp.name !== 'photo' && inp.name !== 'url' && inp.name !== 'image' && inp.name !== 'logo')) return;
   const preview = document.getElementById('ct-preview-' + inp.name);
   if (preview) preview.innerHTML = inp.value ? `<img src="${esc(inp.value)}" alt="">` : '';
 });
