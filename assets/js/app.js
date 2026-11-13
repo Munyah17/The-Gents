@@ -19,7 +19,9 @@ if(!Array.isArray(db.hero)||!db.hero.length)db.hero=HE.map(x=>({...x}));if(!Arra
 let remoteTimer=null,remoteDirty=false,remoteRev=null;let remoteReadyResolve=()=>{};const remoteReady=new Promise(r=>remoteReadyResolve=r);
 const adoptRemote=d=>{if(!d)return;for(const k in db)delete db[k];Object.assign(db,d);syncHero()};
 const gentsRole=()=>{try{return sessionStorage.getItem('gents_auth')==='admin'?'admin':'guest'}catch(e){return 'guest'}};
-const remoteSave=()=>{if(!/^https?:$/.test(location.protocol))return;remoteDirty=true;clearTimeout(remoteTimer);remoteTimer=setTimeout(async()=>{try{const r=await fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json','X-Gents-Role':gentsRole(),'X-Data-Rev':remoteRev||''},body:JSON.stringify(db),credentials:'same-origin'});if(r.status===401||r.status===403){toast('Your session expired — please sign in again.');remoteDirty=false;return}if(r.status===409){const j=await r.json();if(j&&j.data){adoptRemote(j.data);remoteRev=j.rev||remoteRev;toast('Data was updated elsewhere — latest version loaded.')}remoteDirty=false;return}if(!r.ok){const j=await r.json().catch(()=>null);toast('Save failed — '+((j&&j.error)||('server error '+r.status))+'. Your change was not stored.');remoteDirty=false;return}const j=await r.json();remoteRev=j.rev||remoteRev;if(j&&j.data)adoptRemote(j.data)}catch(e){toast('Save failed — could not reach server. Your change was not stored.')}remoteDirty=false},400)};
+let remoteFlight=null,remoteVersion=0;
+async function flushRemote(){clearTimeout(remoteTimer);if(remoteFlight){if(!await remoteFlight)return false;return flushRemote()}if(!remoteDirty)return true;if(!/^https?:$/.test(location.protocol)){toast('Account changes require the PHP website.');return false}const version=remoteVersion;remoteFlight=(async()=>{try{const r=await fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json','X-Gents-Role':gentsRole(),'X-Data-Rev':remoteRev||''},body:JSON.stringify(db),credentials:'same-origin'});const j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok){toast((j&&j.error)||(r.status===409?'Data changed in another session. Reload before retrying.':'Save failed. Please sign in and retry.'));return false}remoteRev=j.rev||remoteRev;if(j.data&&version===remoteVersion)adoptRemote(j.data);if(version===remoteVersion)remoteDirty=false;return true}catch(e){toast('Save failed — could not reach server. Your change was not stored.');return false}})();let ok;try{ok=await remoteFlight}finally{remoteFlight=null}return ok&&(remoteDirty?flushRemote():true)}
+const remoteSave=()=>{if(!/^https?:$/.test(location.protocol))return;remoteDirty=true;remoteVersion++;clearTimeout(remoteTimer);remoteTimer=setTimeout(()=>{flushRemote()},400)};
 window.addEventListener('pagehide',()=>{if(remoteDirty&&/^https?:$/.test(location.protocol)){try{navigator.sendBeacon('api/db.php',JSON.stringify(db))}catch(e){}}});
 async function bootRemote(){if(!/^https?:$/.test(location.protocol)){remoteReadyResolve();return}try{const r=await fetch('api/db.php',{credentials:'same-origin'});if(!r.ok)return;const j=await r.json();if(!j||!j.ok)return;remoteRev=j.rev||remoteRev;if(j.data){if(!remoteDirty)adoptRemote(j.data)}else remoteSave();if(gentsRole()==='admin'){const ar=await fetch('api/auth.php',{credentials:'same-origin'});const aj=await ar.json().catch(()=>null);if(!aj||!aj.ok){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff')}catch(e){}if(page==='admin')render()}}}catch(e){}finally{remoteReadyResolve()}}
 const save=(push=true)=>{if(!/^https?:$/.test(location.protocol))storage.setItem(KEY,JSON.stringify(db));if(push)remoteSave()};save(false);
@@ -860,7 +862,7 @@ function admUsers(top) {
 function usrForm(id) {
   const x = id ? clientProfiles().find(c => c.id === id) : { name: '', phone: '', email: '', status: 'active', note: '' };
   if (id && !x) return;
-  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><div class="form-group"><label class="form-label">Portal password (optional — creates a client login)</label><input class="field" type="password" name="portalPass" minlength="6" placeholder="Leave blank for walk-in records only"></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
+  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Login password'}</label><input class="field" type="password" name="password" minlength="6" maxlength="72" ${id ? '' : 'required'} autocomplete="new-password"></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><button type="submit" class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
 }
 
 // =====================================================================
@@ -898,7 +900,7 @@ function stfForm(id) {
   if (id && !x) return;
   const isAdmin = x.permissions === '*';
   const roleOpts = (db.roles || []).map(r => `<option value="${r.id}" ${x.roleId === r.id ? 'selected' : ''}>${esc(r.name)} (role)</option>`).join('');
-  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" minlength="6" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
+  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" minlength="6" maxlength="72" ${id ? '' : 'required'} autocomplete="new-password"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
 }
 
 function stfPerms(id) {
@@ -1202,43 +1204,42 @@ document.addEventListener('click', e => {
   if (c === 'io-imp') { const ent = v; if (!ioAllowed(ent, 'imp')) return toast('No permission.'); doImport(ent); return; }
 });
 
-document.addEventListener('submit', e => {
+async function saveAccount(form, action, success) {
+  if (form.dataset.saving) return;
+  form.dataset.saving = 'true';
+  const btn = form.querySelector('button[type=submit]');
+  if (btn) btn.disabled = true;
+  try {
+    if (!await flushRemote()) throw new Error('Previous changes could not be saved. Please retry.');
+    const fd = new FormData(form);
+    const values = Object.fromEntries(fd);
+    const r = await fetch('api/accounts.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...values, action, perms: fd.getAll('perm') })
+    });
+    const j = await r.json();
+    if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || 'Save failed. Please try again.');
+    if (!j.data || !j.rev) throw new Error('The server did not confirm the saved account.');
+    adoptRemote(j.data); remoteRev = j.rev;
+    closeModal(); render(); toast(success);
+  } catch (err) {
+    toast(err.message || 'Could not reach the server. Please try again.');
+  } finally {
+    delete form.dataset.saving;
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.getAttribute('id') === 'usr-form') {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    if (v.id) { const x = clientProfiles().find(c => c.id === v.id); if (x) Object.assign(x, { name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note }); toast('Client updated.'); }
-    else { clientProfiles().push({ id: 'cli' + Date.now(), name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note, createdAt: new Date().toISOString().slice(0, 10) }); toast('Client added.'); }
-    if (v.portalPass) {
-      if (!v.email) toast('No email — portal login was not created.');
-      else if (v.portalPass.length < 6) toast('Portal password must be 6+ characters — login was not created.');
-      else fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-register', name: v.name, email: v.email, phone: v.phone, password: v.portalPass, noSession: true }), credentials: 'same-origin' })
-        .then(async r => { const j = await r.json().catch(() => null); toast(r.status === 409 ? 'Client saved — a login account with that email already exists.' : (j && j.ok ? 'Login account created for ' + v.email + '.' : 'Client saved, but login failed: ' + ((j && j.error) || ('server error ' + r.status)))); })
-        .catch(() => toast('Client saved — could not reach server to create login.'));
-    }
-    save(); closeModal(); render(); return;
-  }
-  if (form.getAttribute('id') === 'stf-form') {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    const isAdmin = v.access === 'admin';
-    const roleId = isAdmin ? '' : (v.roleId || '');
-    const roleName = roleId ? ((db.roles || []).find(r => r.id === roleId) || {}).name || '' : '';
-    let sid = v.id;
-    if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : (x.permissions === '*' ? [] : x.permissions), status: v.status }); } toast('Staff updated.'); }
-    else { const rec = { id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : [], protected: false, status: v.status, createdAt: new Date().toISOString().slice(0, 10) }; staffAll().push(rec); sid = rec.id; toast(isAdmin ? 'Administrator added.' : 'Staff added — assign permissions from the Perms button.'); }
-    if (v.password) {
-      if (v.password.length < 6) toast('Password must be at least 6 characters — login credentials were NOT set. Use Edit to try again.');
-      else fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' })
-        .then(async r => { const j = await r.json().catch(() => null); if (!r.ok || !(j && j.ok)) toast('Profile saved, but password rejected: ' + ((j && j.error) || ('server error ' + r.status))); })
-        .catch(() => toast('Profile saved, but password could not be sent — use Edit to set it again.'));
-    }
-    save(); closeModal(); render(); return;
-  }
-  if (form.getAttribute('id') === 'role-form') {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
-    const perms = fd.getAll('perm');
-    if (v.id) { const r = (db.roles || []).find(x => x.id === v.id); if (r) { r.name = v.name; r.perms = perms; } toast('Role updated.'); }
-    else { if (!(db.roles || []).some(r => r.name.toLowerCase() === v.name.toLowerCase())) (db.roles = db.roles || []).push({ id: 'rol' + Date.now(), name: v.name, perms, createdAt: new Date().toISOString().slice(0, 10) }); else return toast('A role with that name exists.'); toast('Role created.'); }
-    save(); closeModal(); render(); return;
+  const formId = form.getAttribute('id');
+  const accountActions = { 'usr-form': 'client-save', 'stf-form': 'staff-save', 'role-form': 'role-save' };
+  if (accountActions[formId]) {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const editing = !!new FormData(form).get('id');
+    const label = formId === 'role-form' ? 'Role' : (formId === 'usr-form' ? 'Client account' : 'Staff account');
+    await saveAccount(form, accountActions[formId], label + (editing ? ' updated.' : ' created.'));
+    return;
   }
   if (form.getAttribute('id') === 'stf-perms-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
@@ -1705,7 +1706,7 @@ document.addEventListener('submit', e => {
   }
 });
 
-document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','login-form'].includes(form.getAttribute('id')))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.getAttribute('id')==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin':'client';return}if(form.getAttribute('id')==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.getAttribute('id')==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}save();closeModal();render()});
+document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form'].includes(form.getAttribute('id')))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.getAttribute('id')==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.getAttribute('id')==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}save();closeModal();render()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 async function verifySession(){if(!/^https?:$/.test(location.protocol))return true;let a=null;try{a=sessionStorage.getItem('gents_auth')}catch(e){}if(a!=='admin'&&a!=='client')return true;try{const r=await fetch('api/auth.php',{credentials:'same-origin'});if(r.status===401){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff');sessionStorage.removeItem('gents_client')}catch(e){}if(page==='admin'){toast('Session expired — please sign in again.');location.href='login'}else if(page==='client'){location.href='login'}return false}return true}catch(e){return true}}
 async function bootRender(){const prot=(page==='admin'||page==='client');let a=null;try{a=sessionStorage.getItem('gents_auth')}catch(e){}const vs=verifySession();if(prot&&a){if(!await vs)return}try{await remoteReady}catch(e){}render()}
