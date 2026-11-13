@@ -1,0 +1,33 @@
+name: Account regression checks
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  accounts:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: regression-only
+          MYSQL_DATABASE: gents_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pregression-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and check JavaScript
+        run: |
+          node _build.js
+          node --check assets/js/app.js
+          git diff --exit-code
+          node --test tests/forms.cjs
+      - name: Check PHP and real MySQL account flows
+        env:
+          GENTS_TEST_DB_PASSWORD: regression-only
+        run: |
+          php -m | grep pdo_mysql
+          find api -name '*.php' -print0 | xargs -0 -n1 php -l
+          python3 tests/accounts.py

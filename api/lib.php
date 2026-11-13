@@ -36,10 +36,8 @@ function ensureSchema(): void {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    // Primary admin (bcrypt hash of the admin password — see thegents_db.sql)
-    db()->exec('INSERT IGNORE INTO admin_users (id, username, email, password_hash) VALUES
-        (1, \'Munyah\', \'munyah777@gmail.com\',
-         \'$2y$10$pAvHeJjntdYUkt3uybkovetqykQf8zlR.3sVTrMKPwQ9DIjK.KID6\')');
+    // Existing administrators belong in admin_users. Never ship or recreate a
+    // default login credential during ordinary API requests.
     // Client portal accounts (matches the clients table in thegents_db.sql)
     db()->exec("CREATE TABLE IF NOT EXISTS clients (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -86,7 +84,16 @@ function storeData(array $data): void {
 }
 
 function isAdmin(): bool {
-    return !empty($_SESSION['gents_admin']);
+    if (empty($_SESSION['gents_admin'])) return false;
+    $id = (string)($_SESSION['gents_staff_id'] ?? '');
+    if (strpos($id, 'admin_users:') === 0) {
+        ensureSchema();
+        $st = db()->prepare('SELECT id FROM admin_users WHERE id = ?');
+        $st->execute([substr($id, 12)]);
+        return $st->fetchColumn() !== false;
+    }
+    $staff = currentStaff();
+    return $staff !== null && ($staff['status'] ?? 'active') !== 'suspended';
 }
 
 function isClient(): bool {
@@ -210,9 +217,17 @@ function staffCan(?array $perms, array $accepted): bool {
 
 // Strip site_data keys a restricted staff member may not view.
 function filterForStaff(array $d, array $perms): array {
+    $me = currentStaff();
+    $ownRoles = [];
+    if ($me) foreach (($d['roles'] ?? []) as $role) {
+        if (($role['id'] ?? '') === ($me['roleId'] ?? '') || ($role['name'] ?? '') === ($me['roleId'] ?? $me['role'] ?? '')) $ownRoles[] = $role;
+    }
     foreach (KEY_VIEW_PERMS as $key => $accepted) {
         if (array_key_exists($key, $d) && !staffCan($perms, $accepted)) unset($d[$key]);
     }
+    // A restricted account still needs its own profile/role to render its menu.
+    if ($me && !isset($d['staff'])) $d['staff'] = [$me];
+    if ($me && !isset($d['roles'])) $d['roles'] = $ownRoles;
     // Never ship staff password fields to any browser session.
     if (isset($d['staff']) && is_array($d['staff'])) {
         foreach ($d['staff'] as &$s) unset($s['password']);

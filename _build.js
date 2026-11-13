@@ -71,7 +71,7 @@ const reps = [
 
   // --- login + loginCard functions (inserted before confirmPage) ---
   ["function confirmPage(){",
-   "function login(){if(auth('admin')){location.replace('admin');return''}if(auth('client')){location.replace('client');return''}return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class=\"shell\" style=\"max-width:560px\"><div class=\"page-panel\" style=\"margin:60px auto\"><div class=\"eyebrow\">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style=\"margin:12px 0 6px\">Sign In</h2><p class=\"muted\">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id=\"login-form\" data-role=\"${role}\"><div class=\"form-group\"><label class=\"form-label\">Email, name or pseudonym</label><input class=\"field\" type=\"text\" required name=\"email\" placeholder=\"you@example.com · Alex Demo · AD\"></div><div class=\"form-group\"><label class=\"form-label\">Password</label><input class=\"field\" type=\"password\" required name=\"password\" placeholder=\"Enter your password\"></div><button class=\"btn btn-gold\" type=\"submit\" style=\"width:100%\">Sign In →</button></form><p class=\"muted small\" style=\"margin-top:20px;text-align:center\">${admin?'':'New here? <a href=\"booking\" style=\"color:var(--gold)\">Book an appointment</a>'}</p></div></div>`}function confirmPage(){"],
+   "function login(){if(auth('admin')){location.replace('admin');return''}if(auth('client')){location.replace('client');return''}return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class=\"shell\" style=\"max-width:560px\"><div class=\"page-panel\" style=\"margin:60px auto\"><div class=\"eyebrow\">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style=\"margin:12px 0 6px\">Sign In</h2><p class=\"muted\">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id=\"login-form\" data-role=\"${role}\"><div class=\"form-group\"><label class=\"form-label\">${admin?'Email or username':'Email, name or pseudonym'}</label><input class=\"field\" type=\"text\" required name=\"email\" placeholder=\"you@example.com · Alex Demo · AD\"></div><div class=\"form-group\"><label class=\"form-label\">Password</label><input class=\"field\" type=\"password\" required name=\"password\" placeholder=\"Enter your password\"></div><button class=\"btn btn-gold\" type=\"submit\" style=\"width:100%\">Sign In →</button></form><p class=\"muted small\" style=\"margin-top:20px;text-align:center\">${admin?'<a href=\"login\" style=\"color:var(--gold)\">Client sign in</a>':'<a href=\"admin\" style=\"color:var(--gold)\">Staff / Admin sign in</a><br><br>New here? <a href=\"booking\" style=\"color:var(--gold)\">Book an appointment</a>'}</p></div></div>`}function confirmPage(){"],
 
   // --- client portal: auth gate, drop membership bits, de-demo ---
   ["function client(){let list=", "function client(){if(!auth('client')){location.replace('login');return''}let list="],
@@ -114,12 +114,6 @@ const reps = [
   // --- booking submit signs the client in so 'My Bookings' works ---
   ["db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);save();return navigate('confirmation')",
    "db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);try{sessionStorage.setItem('gents_auth','client')}catch(e){}save();return navigate('confirmation')"],
-
-  // --- login form handling ---
-  ["['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form']",
-   "['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form','login-form']"],
-  ["if(form.id==='contact-form'){db.contacts.push(v)",
-   "if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin':'client';return}if(form.id==='contact-form'){db.contacts.push(v)"],
 
   // --- loginCard: add Create account link for clients ---
   ["Book an appointment</a>'}", "Book an appointment</a> · <a href=\"#\" data-action=\"cl-register\" style=\"color:var(--gold)\">Create account</a>'}"],

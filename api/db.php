@@ -45,6 +45,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($inc)) {
         jsonOut(['ok' => false, 'error' => 'invalid payload'], 400);
     }
+    ensureSchema();
+    db()->beginTransaction();
+    db()->query('SELECT payload FROM site_data WHERE id = 1 FOR UPDATE')->fetchColumn();
     $stored = loadData();
 
     // Optimistic concurrency (admin writes only — guest merges are append-only
@@ -79,11 +82,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 unset($s);
             }
             storeData($inc);
+            $savedRev = dataRev();
+            db()->commit();
             try { sendBookingNotices(bookingDiffs($stored ?: [], $inc)); } catch (Throwable $t) {}
-            jsonOut(['ok' => true, 'rev' => dataRev()]);
+            jsonOut(['ok' => true, 'rev' => $savedRev]);
         }
 
         // Restricted staff — their payload only contains keys they may view.
+        $visible = filterForStaff($stored ?: [], $perms);
         // 1) Reject writes to keys they hold no permission for (only if changed).
         foreach ($inc as $k => $v) {
             if ($k === '__reset') continue;
@@ -91,6 +97,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($accepted === null) continue;
             if (isset($stored[$k]) && json_encode($stored[$k]) === json_encode($v)) continue;
             if (!staffCan($perms, $accepted)) {
+                // Read-only collections may be filtered subsets (own profile/role).
+                // Preserve the full stored collection when that view is unchanged.
+                if (array_key_exists($k, $visible) && json_encode($visible[$k]) === json_encode($v)) {
+                    unset($inc[$k]);
+                    continue;
+                }
                 jsonOut(['ok' => false, 'error' => 'permission denied: cannot modify ' . $k], 403);
             }
         }
@@ -106,15 +118,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($s);
         }
         storeData($merged);
+        $savedRev = dataRev();
+        db()->commit();
         try { sendBookingNotices(bookingDiffs($stored ?: [], $merged)); } catch (Throwable $t) {}
-        jsonOut(['ok' => true, 'rev' => dataRev()]);
+        jsonOut(['ok' => true, 'rev' => $savedRev]);
     }
 
     if ($stored === null) {
         // First boot — only an authenticated admin may seed the database.
         if (!isAdmin()) jsonOut(['ok' => false, 'error' => 'admin session required'], 403);
         storeData($inc);
-        jsonOut(['ok' => true, 'rev' => dataRev()]);
+        $savedRev = dataRev();
+        db()->commit();
+        jsonOut(['ok' => true, 'rev' => $savedRev]);
     }
 
     // Guest merge requires the core collections to be present.
@@ -123,8 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $merged = mergePublicData($stored, $inc);
     storeData($merged);
+    $savedRev = dataRev();
+    db()->commit();
     try { sendBookingNotices(bookingDiffs($stored, $merged)); } catch (Throwable $t) {}
-    jsonOut(['ok' => true, 'rev' => dataRev(), 'data' => publicData($merged)]);
+    jsonOut(['ok' => true, 'rev' => $savedRev, 'data' => publicData($merged)]);
 }
 
 jsonOut(['ok' => false, 'error' => 'method not allowed'], 405);
