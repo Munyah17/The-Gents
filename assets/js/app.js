@@ -22,7 +22,37 @@ if(db.services&&db.services.some(s=>SVC_MAP[s.id])){db.services=structuredClone(
 let remoteTimer=null,remoteDirty=false,remoteRev=null;let remoteReadyResolve=()=>{};const remoteReady=new Promise(r=>remoteReadyResolve=r);
 const adoptRemote=d=>{if(!d)return;for(const k in db)delete db[k];Object.assign(db,d);syncHero()};
 const gentsRole=()=>{try{return sessionStorage.getItem('gents_auth')==='admin'?'admin':'guest'}catch(e){return 'guest'}};
-const remoteSave=()=>{if(!/^https?:$/.test(location.protocol))return;remoteDirty=true;clearTimeout(remoteTimer);remoteTimer=setTimeout(async()=>{try{const r=await fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json','X-Gents-Role':gentsRole(),'X-Data-Rev':remoteRev||''},body:JSON.stringify(db),credentials:'same-origin'});if(r.status===401||r.status===403){toast('Your session expired — please sign in again.');remoteDirty=false;return}if(r.status===409){const j=await r.json();if(j&&j.data){adoptRemote(j.data);remoteRev=j.rev||remoteRev;toast('Data was updated elsewhere — latest version loaded.')}remoteDirty=false;return}if(!r.ok){const j=await r.json().catch(()=>null);toast('Save failed — '+((j&&j.error)||('server error '+r.status))+'. Your change was not stored.');remoteDirty=false;return}const j=await r.json();remoteRev=j.rev||remoteRev;if(j&&j.data)adoptRemote(j.data)}catch(e){toast('Save failed — could not reach server. Your change was not stored.')}remoteDirty=false},400)};
+let remoteFlight = null, remoteVersion = 0;
+async function flushRemote() {
+  clearTimeout(remoteTimer);
+  if (remoteFlight) { if (!await remoteFlight) return false; return flushRemote(); }
+  if (!remoteDirty) return true;
+  if (!/^https?:$/.test(location.protocol)) { toast('Account changes require the PHP website.'); return false; }
+  const version = remoteVersion;
+  remoteFlight = (async () => {
+    try {
+      const r = await fetch('api/db.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Gents-Role': gentsRole(), 'X-Data-Rev': remoteRev || '' }, body: JSON.stringify(db), credentials: 'same-origin' });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j || !j.ok) {
+        // Keep unsaved edits in memory; never replace them with a conflict response.
+        toast((j && j.error) || (r.status === 409 ? 'Data changed in another session. Reload before retrying.' : 'Save failed. Please sign in and retry.'));
+        return false;
+      }
+      remoteRev = j.rev || remoteRev;
+      if (j.data && version === remoteVersion) adoptRemote(j.data);
+      if (version === remoteVersion) remoteDirty = false;
+      return true;
+    } catch (e) { toast('Save failed — could not reach server. Your change was not stored.'); return false; }
+  })();
+  let ok;
+  try { ok = await remoteFlight; } finally { remoteFlight = null; }
+  return ok && (remoteDirty ? flushRemote() : true);
+}
+const remoteSave = () => {
+  if (!/^https?:$/.test(location.protocol)) return;
+  remoteDirty = true; remoteVersion++;
+  clearTimeout(remoteTimer); remoteTimer = setTimeout(() => { flushRemote(); }, 400);
+};
 window.addEventListener('pagehide',()=>{if(remoteDirty&&/^https?:$/.test(location.protocol)){try{navigator.sendBeacon('api/db.php',JSON.stringify(db))}catch(e){}}});
 async function bootRemote(){if(!/^https?:$/.test(location.protocol)){remoteReadyResolve();return}try{const r=await fetch('api/db.php',{credentials:'same-origin'});if(!r.ok)return;const j=await r.json();if(!j||!j.ok)return;remoteRev=j.rev||remoteRev;if(j.data){if(!remoteDirty)adoptRemote(j.data)}else remoteSave();if(gentsRole()==='admin'){const ar=await fetch('api/auth.php',{credentials:'same-origin'});const aj=await ar.json().catch(()=>null);if(!aj||!aj.ok){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff')}catch(e){}if(page==='admin')render()}}}catch(e){}finally{remoteReadyResolve()}}
 const save=(push=true)=>{if(!/^https?:$/.test(location.protocol))storage.setItem(KEY,JSON.stringify(db));if(push)remoteSave()};save(false);
@@ -86,7 +116,7 @@ if(dashboardTab==='clients'){let clients=[...new Map(db.bookings.map(x=>[x.phone
 if(dashboardTab==='reports'){const total=f.length||1;return top+`<div class="stat-grid">${[['◉','1,284','Visitors (sample)'],['↗','3.8%','Booking rate (sample)'],['▢',f.length,'Actual bookings'],['✓',counts('Confirmed'),'Confirmed appointments']].map(([i,n,t])=>`<div class="stat"><div class="stat-icon">${i}</div><div class="number">${n}</div><div class="small">${t}</div></div>`).join('')}</div><div class="dash-grid"><div class="panel"><h3>Booking Status</h3>${['Pending','Confirmed','Cancelled','Completed'].map(x=>`<div class="progress-row"><span>${x}</span><div class="track"><div class="fill" style="width:${counts(x)/total*100}%"></div></div><b>${counts(x)}</b></div>`).join('')}</div><div class="panel"><h3>Source Breakdown</h3>${['Online','Walk-in'].map(x=>{let n=f.filter(b=>b.source===x).length;return `<div class="progress-row"><span>${x}</span><div class="track"><div class="fill" style="width:${n/total*100}%"></div></div><b>${n}</b></div>`}).join('')}<p class="small muted">Visitor figures above are illustrative; bookings reflect actual data.</p></div></div>`}
 return top+`<div class="panel" style="max-width:620px"><h3>Settings</h3><p class="muted">Theme, sample data and local state controls.</p><div class="auth-actions">${button('Toggle Theme','theme')}${button('Reset Sample Data','reset')}${button('Preview Website','go:home','btn btn-gold')}</div><p class="muted small" style="margin-top:25px">In production, SMTP, WhatsApp Business API, roles and SEO settings would be configured on the PHP/MySQL backend. This prototype makes no network changes.</p></div>`}
 function bookingTable(list,title,short){return `${short?`<div class="panel-head"><h3>${title}</h3>${button('View All','admin-tab:bookings','btn btn-sm')}</div>`:''}<div class="table-wrap"><table><thead><tr><th>Time</th><th>Client</th><th>Service</th><th>Barber</th><th>Branch</th><th>Status</th><th>Action</th></tr></thead><tbody>${list.map(b=>`<tr><td>${fmt(b.date)}<br><span class="muted">${esc(b.time)}</span></td><td>${esc(b.name)}</td><td>${esc(service(b.service).name)}</td><td>${esc(barber(b.barber).name)}</td><td>${esc(branch(b.branch).name)}</td><td>${badge(b.status)}</td><td>${b.status==='Pending'?`<div class="row-actions"><button class="btn btn-sm" data-action="approve:${b.id}">✓</button><button class="btn btn-sm" data-action="decline:${b.id}">×</button></div>`:button('View','view-booking:'+b.id,'btn btn-sm')}</td></tr>`).join('')}</tbody></table>${list.length?'':'<div class="empty">No bookings yet.</div>'}</div>`}
-function login(){if(auth('admin')){location.replace('admin');return''}if(auth('client')){location.replace('client');return''}return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class="shell" style="max-width:560px"><div class="page-panel" style="margin:60px auto"><div class="eyebrow">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style="margin:12px 0 6px">Sign In</h2><p class="muted">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id="login-form" data-role="${role}"><div class="form-group"><label class="form-label">Email, name or pseudonym</label><input class="field" type="text" required name="email" placeholder="you@example.com · Alex Demo · AD"></div><div class="form-group"><label class="form-label">Password</label><input class="field" type="password" required name="password" placeholder="Enter your password"></div><button class="btn btn-gold" type="submit" style="width:100%">Sign In →</button></form><p class="muted small" style="margin-top:20px;text-align:center">${admin?'':'New here? <a href="booking" style="color:var(--gold)">Book an appointment</a> · <a href="#" data-action="cl-register" style="color:var(--gold)">Create account</a>'}</p></div></div>`}function confirmPage(){return `<div class="shell" style="max-width:740px;text-align:center"><div class="section"><div style="display:inline-grid;place-items:center;background:var(--gold-soft);color:var(--gold);width:72px;height:72px;border-radius:50%;font-size:29px;margin-bottom:20px">✓</div><div class="eyebrow">REQUEST SUBMITTED</div><h1>Booking Request Received</h1><p class="muted">Your request has been sent to the branch receptionist for review. Notifications are simulated.</p><div class="page-panel" style="margin:25px auto;max-width:540px;text-align:left">${[['Booking reference',booking.id],['Branch',branch(booking.branch).name],['Service',service(booking.service).name],['Date',fmt(booking.date)],['Time',booking.time],['Status','Pending approval']].map(([k,v])=>`<div class="summary-row"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>${button('My Bookings','go:client','btn btn-gold')} ${button('Back to Home','go:home')}</div></div>`}
+function login(){if(auth('admin')){location.replace('admin');return''}if(auth('client')){location.replace('client');return''}return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class="shell" style="max-width:560px"><div class="page-panel" style="margin:60px auto"><div class="eyebrow">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style="margin:12px 0 6px">Sign In</h2><p class="muted">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id="login-form" data-role="${role}"><div class="form-group"><label class="form-label">${admin?'Email or username':'Email, name or pseudonym'}</label><input class="field" type="text" required name="email" placeholder="you@example.com · Alex Demo · AD"></div><div class="form-group"><label class="form-label">Password</label><input class="field" type="password" required name="password" placeholder="Enter your password"></div><button class="btn btn-gold" type="submit" style="width:100%">Sign In →</button></form><p class="muted small" style="margin-top:20px;text-align:center">${admin?'<a href="login" style="color:var(--gold)">Client sign in</a>':'<a href="admin" style="color:var(--gold)">Staff / Admin sign in</a><br><br>New here? <a href="booking" style="color:var(--gold)">Book an appointment</a> · <a href="#" data-action="cl-register" style="color:var(--gold)">Create account</a>'}</p></div></div>`}function confirmPage(){return `<div class="shell" style="max-width:740px;text-align:center"><div class="section"><div style="display:inline-grid;place-items:center;background:var(--gold-soft);color:var(--gold);width:72px;height:72px;border-radius:50%;font-size:29px;margin-bottom:20px">✓</div><div class="eyebrow">REQUEST SUBMITTED</div><h1>Booking Request Received</h1><p class="muted">Your request has been sent to the branch receptionist for review. Notifications are simulated.</p><div class="page-panel" style="margin:25px auto;max-width:540px;text-align:left">${[['Booking reference',booking.id],['Branch',branch(booking.branch).name],['Service',service(booking.service).name],['Date',fmt(booking.date)],['Time',booking.time],['Status','Pending approval']].map(([k,v])=>`<div class="summary-row"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>${button('My Bookings','go:client','btn btn-gold')} ${button('Back to Home','go:home')}</div></div>`}
 function render(){syncHero();let body;if(page.startsWith('branch:'))body=branchPage(page.slice(7));else body=({home,services,barbers,gallery,membership,contact,booking:bookingPage,client,admin,login,confirmation:confirmPage})[page]?.()||home();document.getElementById('app').innerHTML=header()+`<div class="page">${body}</div>`+(page==='admin'||page==='client'?'':footer());document.title=`The Gent’s · ${page.charAt(0).toUpperCase()+page.slice(1)}`;document.querySelector('meta[name=theme-color]').content=dark?'#111111':'#ffffff';}
 function navigate(p){if(p.startsWith('branch:')){location.href='branch#'+p.slice(7);return}const f={home:'index',services:'services',barbers:'barbers',gallery:'gallery',membership:'membership',contact:'contact',login:'login',booking:'booking',client:'client',admin:'admin',confirmation:'booking'}[p]||'index';const fp=(location.pathname.split('/').pop()||'index');if(f===fp){page=p;window.scrollTo({top:0,behavior:'instant'});render()}else location.href=f}
 function toast(message){document.getElementById('toast-root').innerHTML=`<div class="toast"><b>Notification</b><br>${esc(message)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>document.getElementById('toast-root').innerHTML='',3500)}
@@ -126,7 +156,7 @@ const admF = () => {
 function adminBody() {
   const titles = { overview: 'Dashboard', bookings: 'Bookings', requests: 'Booking Requests', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', content: 'Content & Media', clients: 'Clients', membership: 'Membership & Wallet', reports: 'Reports', users: 'User Management', staff: 'Account Access', erp: 'Accounting & ERP', settings: 'Settings' };
   const f = branchFilter === 'all' ? db.bookings : db.bookings.filter(b => b.branch === branchFilter);
-  const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">All changes are saved locally.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
+  const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">Changes are saved to the database.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
   if (!admCan(dashboardTab)) {
     const alt = Object.keys(PERM_MAP).find(k => admCan(k));
     if (alt) dashboardTab = alt;
@@ -414,7 +444,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'adm-decline-form') {
+  if (form.getAttribute('id') === 'adm-decline-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -422,7 +452,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' declined.');
     save(); closeModal(); toast('Booking ' + b.id + ' declined.'); render(); return;
   }
-  if (form.id === 'adm-pay-form') {
+  if (form.getAttribute('id') === 'adm-pay-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -430,7 +460,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' paid via ' + b.payment + '.');
     save(); closeModal(); toast('Payment recorded for ' + b.id + '.'); render(); return;
   }
-  if (form.id === 'login-form') {
+  if (form.getAttribute('id') === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
     const role = form.dataset.role === 'admin' ? 'admin' : 'client';
@@ -440,7 +470,7 @@ document.addEventListener('submit', async e => {
         const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-login', email: em, password: pw }), credentials: 'same-origin' });
         const j = await r.json();
         if (j && j.ok) { try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = 'client'; return; }
-        if (r.status === 401) { toast('Invalid email or password.'); return; }
+        toast((j && j.error) || 'Invalid email or password.'); return;
       } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
     }
     // Admin login — credentials verified server-side against MySQL only
@@ -455,27 +485,27 @@ document.addEventListener('submit', async e => {
       return;
     } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
   }
-  if (form.id === 'adm-branch-form') {
+  if (form.getAttribute('id') === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (v.id) { const x = db.branches.find(b => b.id === v.id); if (x) Object.assign(x, { name: v.name, place: v.place, hours: v.hours, photo: v.photo || x.photo }); toast('Branch updated.'); }
     else { db.branches.push({ id: v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4), name: v.name, place: v.place, hours: v.hours || 'Mon–Sat · 09:00–18:00', photo: v.photo || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&q=80' }); toast('Branch added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-barber-form') {
+  if (form.getAttribute('id') === 'adm-barber-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const sv = fd.getAll('services');
     const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', bio: v.bio || '', services: sv.length ? sv : db.services.map(s => s.id) };
     if (v.id) { const x = db.barbers.find(b => b.id === v.id); if (x) Object.assign(x, data); toast('Barber updated.'); }
     else { db.barbers.push({ id: 'barber' + Date.now(), ...data }); toast('Barber added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-service-form') {
+  if (form.getAttribute('id') === 'adm-service-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const bv = fd.getAll('branches');
     const data = { name: v.name, desc: v.desc || 'Grooming service', image: v.image || '', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
     if (v.id) { const x = db.services.find(s => s.id === v.id); if (x) Object.assign(x, data); toast('Service updated.'); }
     else { db.services.push({ id: 'srv' + Date.now(), ...data }); toast('Service added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-settings-form') {
+  if (form.getAttribute('id') === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address, logo: v.logo || '', social: { facebook: v.fb || '', instagram: v.ig || '', tiktok: v.tt || '' } };
     save(); toast('Settings saved.'); return;
@@ -697,7 +727,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'client-auth-form') {
+  if (form.getAttribute('id') === 'client-auth-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const btn = form.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
@@ -714,7 +744,7 @@ document.addEventListener('submit', async e => {
     } catch (x) { toast('Could not reach the server — check your connection.'); }
     if (btn) btn.disabled = false; return;
   }
-  if (form.id === 'cl-topup-form') {
+  if (form.getAttribute('id') === 'cl-topup-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const amount = Number(v.amount);
@@ -730,7 +760,7 @@ document.addEventListener('submit', async e => {
       else toast((j && j.error) || 'Top-up failed.');
     }).catch(() => toast('Could not reach the server.')); return;
   }
-  if (form.id === 'cl-gc-form') {
+  if (form.getAttribute('id') === 'cl-gc-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     clApi('issue-giftcard', { amount: Number(v.amount), toName: v.toName, toEmail: v.toEmail, maxUses: Number(v.maxUses), serviceId: v.serviceId || '', expiresAt: v.expiresAt || '' }).then(j => {
@@ -738,7 +768,7 @@ document.addEventListener('submit', async e => {
       else toast((j && j.error) || 'Could not issue gift card.');
     }).catch(() => toast('Could not reach the server.')); return;
   }
-  if (form.id !== 'cl-profile-form') return;
+  if (form.getAttribute('id') !== 'cl-profile-form') return;
   e.preventDefault();
   const v = Object.fromEntries(new FormData(form));
   db.clientProfile = { name: v.name, phone: v.phone, email: v.email, favBranch: v.favBranch || '', favBarber: v.favBarber || '' };
@@ -881,7 +911,7 @@ function admUsers(top) {
 function usrForm(id) {
   const x = id ? clientProfiles().find(c => c.id === id) : { name: '', phone: '', email: '', status: 'active', note: '' };
   if (id && !x) return;
-  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
+  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Login password'}</label><input class="field" type="password" name="password" minlength="6" maxlength="72" ${id ? '' : 'required'} autocomplete="new-password"></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><button type="submit" class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
 }
 
 // =====================================================================
@@ -911,7 +941,7 @@ function permPicker(sel) {
 function roleForm(id) {
   const x = id ? (db.roles || []).find(r => r.id === id) : { name: '', perms: [] };
   if (id && !x) return;
-  modal(id ? 'Edit Role' : 'New Role', `<form id="role-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Role name</label><input class="field" required name="name" value="${esc(x.name || '')}" placeholder="e.g. Junior Barber, Cashier"></div><div class="form-group"><label class="form-label">Permissions</label>${permPicker(x.perms || [])}</div><button class="btn btn-gold">${id ? 'Save Role' : 'Create Role'}</button></form>`);
+  modal(id ? 'Edit Role' : 'New Role', `<form id="role-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-group"><label class="form-label">Role name</label><input class="field" required name="name" value="${esc(x.name || '')}" placeholder="e.g. Junior Barber, Cashier"></div><div class="form-group"><label class="form-label">Permissions</label>${permPicker(x.perms || [])}</div><button type="submit" class="btn btn-gold">${id ? 'Save Role' : 'Create Role'}</button></form>`);
 }
 
 function stfForm(id) {
@@ -919,7 +949,7 @@ function stfForm(id) {
   if (id && !x) return;
   const isAdmin = x.permissions === '*';
   const roleOpts = (db.roles || []).map(r => `<option value="${r.id}" ${x.roleId === r.id ? 'selected' : ''}>${esc(r.name)} (role)</option>`).join('');
-  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
+  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" minlength="6" maxlength="72" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button type="submit" class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
 }
 
 function stfPerms(id) {
@@ -1223,53 +1253,65 @@ document.addEventListener('click', e => {
   if (c === 'io-imp') { const ent = v; if (!ioAllowed(ent, 'imp')) return toast('No permission.'); doImport(ent); return; }
 });
 
-document.addEventListener('submit', e => {
+// Do not mutate local account records or announce success before the server commits.
+async function saveAccount(form, action, success) {
+  if (form.dataset.saving) return;
+  form.dataset.saving = 'true';
+  const btn = form.querySelector('button[type=submit]');
+  if (btn) btn.disabled = true;
+  try {
+    if (!await flushRemote()) throw new Error('Previous changes could not be saved. Please retry.');
+    const fd = new FormData(form);
+    const values = Object.fromEntries(fd);
+    const r = await fetch('api/accounts.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...values, action, perms: fd.getAll('perm') })
+    });
+    const j = await r.json();
+    if (!r.ok || !j || !j.ok) throw new Error((j && j.error) || 'Save failed. Please try again.');
+    if (!j.data || !j.rev) throw new Error('The server did not confirm the saved account.');
+    adoptRemote(j.data); remoteRev = j.rev;
+    closeModal(); render(); toast(success);
+  } catch (err) {
+    toast(err.message || 'Could not reach the server. Please try again.');
+  } finally {
+    delete form.dataset.saving;
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'usr-form') {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    if (v.id) { const x = clientProfiles().find(c => c.id === v.id); if (x) Object.assign(x, { name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note }); toast('Client updated.'); }
-    else { clientProfiles().push({ id: 'cli' + Date.now(), name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note, createdAt: new Date().toISOString().slice(0, 10) }); toast('Client added.'); }
-    save(); closeModal(); render(); return;
+  const formId = form.getAttribute('id');
+  const accountActions = { 'usr-form': 'client-save', 'stf-form': 'staff-save', 'role-form': 'role-save' };
+  if (accountActions[formId]) {
+    e.preventDefault(); e.stopImmediatePropagation();
+    const editing = !!new FormData(form).get('id');
+    const label = formId === 'role-form' ? 'Role' : (formId === 'usr-form' ? 'Client account' : 'Staff account');
+    await saveAccount(form, accountActions[formId], label + (editing ? ' updated.' : ' created.'));
+    return;
   }
-  if (form.id === 'stf-form') {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    const isAdmin = v.access === 'admin';
-    const roleId = isAdmin ? '' : (v.roleId || '');
-    const roleName = roleId ? ((db.roles || []).find(r => r.id === roleId) || {}).name || '' : '';
-    let sid = v.id;
-    if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : (x.permissions === '*' ? [] : x.permissions), status: v.status }); } toast('Staff updated.'); }
-    else { const rec = { id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : [], protected: false, status: v.status, createdAt: new Date().toISOString().slice(0, 10) }; staffAll().push(rec); sid = rec.id; toast(isAdmin ? 'Administrator added.' : 'Staff added — assign permissions from the Perms button.'); }
-    if (v.password) fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' }).catch(() => {});
-    save(); closeModal(); render(); return;
-  }
-  if (form.id === 'role-form') {
-    e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
-    const perms = fd.getAll('perm');
-    if (v.id) { const r = (db.roles || []).find(x => x.id === v.id); if (r) { r.name = v.name; r.perms = perms; } toast('Role updated.'); }
-    else { if (!(db.roles || []).some(r => r.name.toLowerCase() === v.name.toLowerCase())) (db.roles = db.roles || []).push({ id: 'rol' + Date.now(), name: v.name, perms, createdAt: new Date().toISOString().slice(0, 10) }); else return toast('A role with that name exists.'); toast('Role created.'); }
-    save(); closeModal(); render(); return;
-  }
-  if (form.id === 'stf-perms-form') {
+  if (form.getAttribute('id') === 'stf-perms-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
     const s = staffAll().find(x => x.id === v.id); if (!s || s.protected) return;
     s.permissions = fd.getAll('perm'); save(); toast('Permissions saved for ' + s.name + '.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-tx-form') {
+  if (form.getAttribute('id') === 'erp-tx-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().transactions.push({ id: 'TX-' + Date.now().toString().slice(-6), type: v.type, category: v.category, amount: Number(v.amount) || 0, date: v.date, description: v.description || '', branch: v.branch || '' });
     db.notifications.unshift((v.type === 'income' ? 'Income' : 'Expense') + ' recorded: ' + money(v.amount) + ' — ' + (v.description || v.category));
     save(); toast(v.type === 'income' ? 'Income recorded.' : 'Expense recorded.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-petty-form') {
+  if (form.getAttribute('id') === 'erp-petty-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().pettyCash.push({ id: 'PC-' + Date.now().toString().slice(-6), date: v.date, description: v.description, receivedBy: v.receivedBy || '', amount: Number(v.amount) || 0 });
     save(); toast('Petty cash voucher saved.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-opening') {
+  if (form.getAttribute('id') === 'erp-opening') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().openingBalance = Number(v.opening) || 0; save(); toast('Opening balance updated.'); render(); return;
   }
-  if (form.id === 'ai-form') {
+  if (form.getAttribute('id') === 'ai-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const q = (v.q || '').trim(); if (!q) return;
     aiLog.push({ q, a: aiAnswer(q) }); save(); render();
     const log = document.getElementById('ai-log'); if (log) log.scrollTop = log.scrollHeight;
@@ -1450,7 +1492,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'ct-hero-form') {
+  if (form.getAttribute('id') === 'ct-hero-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const item = { id: 'hero' + Date.now(), title: v.title, desc: v.desc || '', photo: v.photo || '' };
     const i = Number(v.idx);
@@ -1458,7 +1500,7 @@ document.addEventListener('submit', e => {
     else { if (!Array.isArray(db.hero)) db.hero = []; db.hero.push(item); }
     save(); closeModal(); toast('Hero slide saved.'); render(); return;
   }
-  if (form.id === 'ct-gal-form') {
+  if (form.getAttribute('id') === 'ct-gal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!v.url) { toast('Image URL is required.'); return; }
     const item = { id: 'gal' + Date.now(), url: v.url, alt: v.alt || '', category: v.category || 'Grooming Center' };
@@ -1669,14 +1711,14 @@ function admBalForm(email) {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'adm-tier-form') {
+  if (form.getAttribute('id') === 'adm-tier-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const data = { name: v.name, price: Number(v.price) || 0, color: v.color || '#d4af37', perks: v.perks || '' };
     const i = memTiers().findIndex(x => x.id === v.id);
     if (i >= 0) Object.assign(memTiers()[i], data); else memTiers().push({ id: 'tier' + Date.now().toString(36), ...data });
     save(); closeModal(); toast('Tier saved.'); render(); return;
   }
-  if (form.id === 'adm-mem-form') {
+  if (form.getAttribute('id') === 'adm-mem-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const data = { name: v.name, pseudo: v.pseudo || '', email: (v.email || '').toLowerCase(), profession: v.profession || '', branch: v.branch, tier: v.tier, joined: v.joined || new Date().toISOString().slice(0, 10), status: v.status || 'active' };
     const i = memMembers().findIndex(x => x.id === v.id);
@@ -1684,7 +1726,7 @@ document.addEventListener('submit', e => {
     else memMembers().push({ id: 'm' + Date.now().toString(36), memberNo: nextMemberNo(), ...data });
     save(); closeModal(); toast('Member saved.'); render(); return;
   }
-  if (form.id === 'adm-gc-form') {
+  if (form.getAttribute('id') === 'adm-gc-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const g = memGiftCards().find(x => x.code === v.code); if (!g) return;
     const amt = Math.min(Number(v.amount), Number(g.remaining));
@@ -1693,18 +1735,18 @@ document.addEventListener('submit', e => {
     if (g.remaining <= 0.004 || (g.maxUses && g.uses >= g.maxUses)) g.status = 'depleted';
     save(); closeModal(); toast('Redeemed $' + amt.toFixed(2) + ' from ' + g.code + '.'); render(); return;
   }
-  if (form.id === 'adm-rw-form') {
+  if (form.getAttribute('id') === 'adm-rw-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     rwSet(String(v.email).toLowerCase(), Math.max(0, Number(v.points) || 0), v.reason || 'manual');
     save(); closeModal(); toast('Reward points updated.'); render(); return;
   }
-  if (form.id === 'adm-rwc-form') {
+  if (form.getAttribute('id') === 'adm-rwc-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!db.rewardConfig) db.rewardConfig = {};
     db.rewardConfig.perVisit = Math.max(0, Number(v.perVisit) || 0);
     save(); closeModal(); toast('Reward settings saved.'); render(); return;
   }
-  if (form.id === 'adm-bal-form') {
+  if (form.getAttribute('id') === 'adm-bal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const w = walletEnsure(v.email);
     w.balance = Math.max(0, Number(w.balance || 0) + Number(v.delta));
@@ -1713,7 +1755,7 @@ document.addEventListener('submit', e => {
   }
 });
 
-document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form','login-form'].includes(form.id))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin':'client';return}if(form.id==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.id==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}if(form.id==='branch-form'){let id=v.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString().slice(-4);db.branches.push({id,name:v.name,place:v.place,photo:IM.salon,hours:'Mon–Sat · 09:00–18:00'});toast('New branch created.')}if(form.id==='barber-form'){db.barbers.push({id:'barber'+Date.now(),name:v.name,branch:v.branch,role:'Barber',photo:IM.barber1,services:db.services.map(x=>x.id)});toast('Barber added to the team.')}if(form.id==='service-form'){db.services.push({id:'srv'+Date.now(),name:v.name,desc:'Grooming service',icon:'✂',duration:Number(v.duration),price:Number(v.price),branches:db.branches.map(x=>x.id)});toast('Service added.')}if(form.id==='edit-service-form'){let s=service(v.id);s.name=v.name;s.price=Number(v.price);toast('Service updated.')}save();closeModal();render()});
+document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form'].includes(form.id))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.id==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.id==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}if(form.id==='branch-form'){let id=v.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString().slice(-4);db.branches.push({id,name:v.name,place:v.place,photo:IM.salon,hours:'Mon–Sat · 09:00–18:00'});toast('New branch created.')}if(form.id==='barber-form'){db.barbers.push({id:'barber'+Date.now(),name:v.name,branch:v.branch,role:'Barber',photo:IM.barber1,services:db.services.map(x=>x.id)});toast('Barber added to the team.')}if(form.id==='service-form'){db.services.push({id:'srv'+Date.now(),name:v.name,desc:'Grooming service',icon:'✂',duration:Number(v.duration),price:Number(v.price),branches:db.branches.map(x=>x.id)});toast('Service added.')}if(form.id==='edit-service-form'){let s=service(v.id);s.name=v.name;s.price=Number(v.price);toast('Service updated.')}save();closeModal();render()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 async function verifySession(){if(!/^https?:$/.test(location.protocol))return true;let a=null;try{a=sessionStorage.getItem('gents_auth')}catch(e){}if(a!=='admin'&&a!=='client')return true;try{const r=await fetch('api/auth.php',{credentials:'same-origin'});if(r.status===401){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff');sessionStorage.removeItem('gents_client')}catch(e){}if(page==='admin'){toast('Session expired — please sign in again.');location.href='login'}else if(page==='client'){location.href='login'}return false}return true}catch(e){return true}}
 async function bootRender(){const prot=(page==='admin'||page==='client');let a=null;try{a=sessionStorage.getItem('gents_auth')}catch(e){}const vs=verifySession();if(prot&&a){if(!await vs)return}try{await remoteReady}catch(e){}render()}

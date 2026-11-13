@@ -14,7 +14,7 @@ const admF = () => {
 function adminBody() {
   const titles = { overview: 'Dashboard', bookings: 'Bookings', requests: 'Booking Requests', calendar: 'Calendar', branches: 'Branches', barbers: 'Barbers', services: 'Services', content: 'Content & Media', clients: 'Clients', membership: 'Membership & Wallet', reports: 'Reports', users: 'User Management', staff: 'Account Access', erp: 'Accounting & ERP', settings: 'Settings' };
   const f = branchFilter === 'all' ? db.bookings : db.bookings.filter(b => b.branch === branchFilter);
-  const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">All changes are saved locally.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
+  const top = `<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${titles[dashboardTab] || 'Dashboard'}</h1><p class="muted">Changes are saved to the database.</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b => `<option value="${b.id}" ${branchFilter === b.id ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></div>`;
   if (!admCan(dashboardTab)) {
     const alt = Object.keys(PERM_MAP).find(k => admCan(k));
     if (alt) dashboardTab = alt;
@@ -302,7 +302,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'adm-decline-form') {
+  if (form.getAttribute('id') === 'adm-decline-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -310,7 +310,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' declined.');
     save(); closeModal(); toast('Booking ' + b.id + ' declined.'); render(); return;
   }
-  if (form.id === 'adm-pay-form') {
+  if (form.getAttribute('id') === 'adm-pay-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -318,7 +318,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' paid via ' + b.payment + '.');
     save(); closeModal(); toast('Payment recorded for ' + b.id + '.'); render(); return;
   }
-  if (form.id === 'login-form') {
+  if (form.getAttribute('id') === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
     const role = form.dataset.role === 'admin' ? 'admin' : 'client';
@@ -328,7 +328,7 @@ document.addEventListener('submit', async e => {
         const r = await fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-login', email: em, password: pw }), credentials: 'same-origin' });
         const j = await r.json();
         if (j && j.ok) { try { sessionStorage.setItem('gents_auth', 'client'); sessionStorage.setItem('gents_client', JSON.stringify(j.client)); sessionStorage.removeItem('gents_staff') } catch (x) {} location.href = 'client'; return; }
-        if (r.status === 401) { toast('Invalid email or password.'); return; }
+        toast((j && j.error) || 'Invalid email or password.'); return;
       } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
     }
     // Admin login — credentials verified server-side against MySQL only
@@ -343,27 +343,27 @@ document.addEventListener('submit', async e => {
       return;
     } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
   }
-  if (form.id === 'adm-branch-form') {
+  if (form.getAttribute('id') === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (v.id) { const x = db.branches.find(b => b.id === v.id); if (x) Object.assign(x, { name: v.name, place: v.place, hours: v.hours, photo: v.photo || x.photo }); toast('Branch updated.'); }
     else { db.branches.push({ id: v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4), name: v.name, place: v.place, hours: v.hours || 'Mon–Sat · 09:00–18:00', photo: v.photo || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&q=80' }); toast('Branch added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-barber-form') {
+  if (form.getAttribute('id') === 'adm-barber-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const sv = fd.getAll('services');
     const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', bio: v.bio || '', services: sv.length ? sv : db.services.map(s => s.id) };
     if (v.id) { const x = db.barbers.find(b => b.id === v.id); if (x) Object.assign(x, data); toast('Barber updated.'); }
     else { db.barbers.push({ id: 'barber' + Date.now(), ...data }); toast('Barber added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-service-form') {
+  if (form.getAttribute('id') === 'adm-service-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const bv = fd.getAll('branches');
     const data = { name: v.name, desc: v.desc || 'Grooming service', image: v.image || '', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
     if (v.id) { const x = db.services.find(s => s.id === v.id); if (x) Object.assign(x, data); toast('Service updated.'); }
     else { db.services.push({ id: 'srv' + Date.now(), ...data }); toast('Service added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-settings-form') {
+  if (form.getAttribute('id') === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address, logo: v.logo || '', social: { facebook: v.fb || '', instagram: v.ig || '', tiktok: v.tt || '' } };
     save(); toast('Settings saved.'); return;

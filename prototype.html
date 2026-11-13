@@ -53,7 +53,37 @@ if(db.services&&db.services.some(s=>SVC_MAP[s.id])){db.services=structuredClone(
 let remoteTimer=null,remoteDirty=false,remoteRev=null;let remoteReadyResolve=()=>{};const remoteReady=new Promise(r=>remoteReadyResolve=r);
 const adoptRemote=d=>{if(!d)return;for(const k in db)delete db[k];Object.assign(db,d);syncHero()};
 const gentsRole=()=>{try{return sessionStorage.getItem('gents_auth')==='admin'?'admin':'guest'}catch(e){return 'guest'}};
-const remoteSave=()=>{if(!/^https?:$/.test(location.protocol))return;remoteDirty=true;clearTimeout(remoteTimer);remoteTimer=setTimeout(async()=>{try{const r=await fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json','X-Gents-Role':gentsRole(),'X-Data-Rev':remoteRev||''},body:JSON.stringify(db),credentials:'same-origin'});if(r.status===401||r.status===403){toast('Your session expired — please sign in again.');remoteDirty=false;return}if(r.status===409){const j=await r.json();if(j&&j.data){adoptRemote(j.data);remoteRev=j.rev||remoteRev;toast('Data was updated elsewhere — latest version loaded.')}remoteDirty=false;return}if(!r.ok){const j=await r.json().catch(()=>null);toast('Save failed — '+((j&&j.error)||('server error '+r.status))+'. Your change was not stored.');remoteDirty=false;return}const j=await r.json();remoteRev=j.rev||remoteRev;if(j&&j.data)adoptRemote(j.data)}catch(e){toast('Save failed — could not reach server. Your change was not stored.')}remoteDirty=false},400)};
+let remoteFlight = null, remoteVersion = 0;
+async function flushRemote() {
+  clearTimeout(remoteTimer);
+  if (remoteFlight) { if (!await remoteFlight) return false; return flushRemote(); }
+  if (!remoteDirty) return true;
+  if (!/^https?:$/.test(location.protocol)) { toast('Account changes require the PHP website.'); return false; }
+  const version = remoteVersion;
+  remoteFlight = (async () => {
+    try {
+      const r = await fetch('api/db.php', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Gents-Role': gentsRole(), 'X-Data-Rev': remoteRev || '' }, body: JSON.stringify(db), credentials: 'same-origin' });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j || !j.ok) {
+        // Keep unsaved edits in memory; never replace them with a conflict response.
+        toast((j && j.error) || (r.status === 409 ? 'Data changed in another session. Reload before retrying.' : 'Save failed. Please sign in and retry.'));
+        return false;
+      }
+      remoteRev = j.rev || remoteRev;
+      if (j.data && version === remoteVersion) adoptRemote(j.data);
+      if (version === remoteVersion) remoteDirty = false;
+      return true;
+    } catch (e) { toast('Save failed — could not reach server. Your change was not stored.'); return false; }
+  })();
+  let ok;
+  try { ok = await remoteFlight; } finally { remoteFlight = null; }
+  return ok && (remoteDirty ? flushRemote() : true);
+}
+const remoteSave = () => {
+  if (!/^https?:$/.test(location.protocol)) return;
+  remoteDirty = true; remoteVersion++;
+  clearTimeout(remoteTimer); remoteTimer = setTimeout(() => { flushRemote(); }, 400);
+};
 window.addEventListener('pagehide',()=>{if(remoteDirty&&/^https?:$/.test(location.protocol)){try{navigator.sendBeacon('api/db.php',JSON.stringify(db))}catch(e){}}});
 async function bootRemote(){if(!/^https?:$/.test(location.protocol)){remoteReadyResolve();return}try{const r=await fetch('api/db.php',{credentials:'same-origin'});if(!r.ok)return;const j=await r.json();if(!j||!j.ok)return;remoteRev=j.rev||remoteRev;if(j.data){if(!remoteDirty)adoptRemote(j.data)}else remoteSave();if(gentsRole()==='admin'){const ar=await fetch('api/auth.php',{credentials:'same-origin'});const aj=await ar.json().catch(()=>null);if(!aj||!aj.ok){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff')}catch(e){}if(page==='admin')render()}}}catch(e){}finally{remoteReadyResolve()}}
 const save=(push=true)=>{if(!/^https?:$/.test(location.protocol))storage.setItem(KEY,JSON.stringify(db));if(push)remoteSave()};save(false);

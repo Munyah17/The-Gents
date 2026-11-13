@@ -198,14 +198,14 @@ function admBalForm(email) {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'adm-tier-form') {
+  if (form.getAttribute('id') === 'adm-tier-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const data = { name: v.name, price: Number(v.price) || 0, color: v.color || '#d4af37', perks: v.perks || '' };
     const i = memTiers().findIndex(x => x.id === v.id);
     if (i >= 0) Object.assign(memTiers()[i], data); else memTiers().push({ id: 'tier' + Date.now().toString(36), ...data });
     save(); closeModal(); toast('Tier saved.'); render(); return;
   }
-  if (form.id === 'adm-mem-form') {
+  if (form.getAttribute('id') === 'adm-mem-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const data = { name: v.name, pseudo: v.pseudo || '', email: (v.email || '').toLowerCase(), profession: v.profession || '', branch: v.branch, tier: v.tier, joined: v.joined || new Date().toISOString().slice(0, 10), status: v.status || 'active' };
     const i = memMembers().findIndex(x => x.id === v.id);
@@ -213,7 +213,7 @@ document.addEventListener('submit', e => {
     else memMembers().push({ id: 'm' + Date.now().toString(36), memberNo: nextMemberNo(), ...data });
     save(); closeModal(); toast('Member saved.'); render(); return;
   }
-  if (form.id === 'adm-gc-form') {
+  if (form.getAttribute('id') === 'adm-gc-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const g = memGiftCards().find(x => x.code === v.code); if (!g) return;
     const amt = Math.min(Number(v.amount), Number(g.remaining));
@@ -222,18 +222,18 @@ document.addEventListener('submit', e => {
     if (g.remaining <= 0.004 || (g.maxUses && g.uses >= g.maxUses)) g.status = 'depleted';
     save(); closeModal(); toast('Redeemed $' + amt.toFixed(2) + ' from ' + g.code + '.'); render(); return;
   }
-  if (form.id === 'adm-rw-form') {
+  if (form.getAttribute('id') === 'adm-rw-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     rwSet(String(v.email).toLowerCase(), Math.max(0, Number(v.points) || 0), v.reason || 'manual');
     save(); closeModal(); toast('Reward points updated.'); render(); return;
   }
-  if (form.id === 'adm-rwc-form') {
+  if (form.getAttribute('id') === 'adm-rwc-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!db.rewardConfig) db.rewardConfig = {};
     db.rewardConfig.perVisit = Math.max(0, Number(v.perVisit) || 0);
     save(); closeModal(); toast('Reward settings saved.'); render(); return;
   }
-  if (form.id === 'adm-bal-form') {
+  if (form.getAttribute('id') === 'adm-bal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const w = walletEnsure(v.email);
     w.balance = Math.max(0, Number(w.balance || 0) + Number(v.delta));

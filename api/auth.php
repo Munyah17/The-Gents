@@ -17,7 +17,7 @@ function publicStaff(array $s): array {
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $client = clientRow();
-    if (empty($_SESSION['gents_admin'])) {
+    if (!isAdmin()) {
         jsonOut(['ok' => false, 'client' => $client], $client ? 200 : 401);
     }
     $id = $_SESSION['gents_staff_id'] ?? '';
@@ -40,12 +40,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // {action:"staff-credential", staffKey, email, password} → set/reset password
     // {action:"staff-credential", staffKey, remove:true}     → delete credential
     if ($action === 'staff-credential') {
-        if (empty($_SESSION['gents_admin'])) jsonOut(['ok' => false, 'error' => 'unauthorized'], 401);
+        if (!isAdmin()) jsonOut(['ok' => false, 'error' => 'unauthorized'], 401);
+        if (!staffCan(staffPermSet(currentStaff()), ['staffmgmt.manage'])) jsonOut(['ok' => false, 'error' => 'permission denied'], 403);
         ensureSchema();
         $sid = trim((string)($in['staffKey'] ?? ''));
         $em  = strtolower(trim((string)($in['email'] ?? '')));
         $pw  = (string)($in['password'] ?? '');
         if ($sid === '' || $em === '') jsonOut(['ok' => false, 'error' => 'missing fields'], 400);
+        $target = null;
+        foreach (staffList() as $s) if (($s['id'] ?? '') === $sid) $target = $s;
+        if (!$target || strtolower(trim($target['email'] ?? '')) !== $em) jsonOut(['ok' => false, 'error' => 'staff profile does not match'], 400);
+        $st = db()->prepare('SELECT staff_key FROM staff_users WHERE email = ?');
+        $st->execute([$em]);
+        $key = $st->fetchColumn();
+        if ($key !== false && $key !== $sid) jsonOut(['ok' => false, 'error' => 'email already in use'], 409);
         if (!empty($in['remove'])) {
             db()->prepare('DELETE FROM staff_users WHERE staff_key = ?')->execute([$sid]);
             jsonOut(['ok' => true]);
@@ -99,6 +107,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cid = (int)$c['id'];
         }
 
+        session_regenerate_id(true);
+        unset($_SESSION['gents_admin'], $_SESSION['gents_staff_id']);
         $_SESSION['gents_client_id'] = $cid;
         $st = db()->prepare('SELECT id, name, phone, email FROM clients WHERE id = ?');
         $st->execute([$cid]);
@@ -111,8 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 1) Primary admin account (bcrypt, admin_users table)
     ensureSchema();
-    $st = db()->prepare('SELECT id, username, email FROM admin_users WHERE email = ?');
-    $st->execute([$email]);
+    $st = db()->prepare('SELECT id, username, email FROM admin_users WHERE LOWER(email) = ? OR LOWER(username) = ? ORDER BY (LOWER(email) = ?) DESC LIMIT 1');
+    $st->execute([$email, $email, $email]);
     $adm = $st->fetch();
     $isPrimary = false;
     if ($adm) {
@@ -124,13 +134,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 2) Staff credentials — bcrypt hashes in the staff_users table
     $staff = null;
-    $st = db()->prepare('SELECT staff_key, password_hash FROM staff_users WHERE email = ?');
-    $st->execute([$email]);
+    $profile = null;
+    $profiles = staffList();
+    foreach ($profiles as $s) if (strtolower(trim($s['email'] ?? '')) === $email) { $profile = $s; break; }
+    if (!$profile) foreach ($profiles as $s) if (strtolower(trim($s['username'] ?? '')) === $email) { $profile = $s; break; }
+    $st = db()->prepare('SELECT staff_key, password_hash FROM staff_users WHERE staff_key = ? AND LOWER(email) = ?');
+    $st->execute([$profile['id'] ?? '', strtolower(trim($profile['email'] ?? ''))]);
     $su = $st->fetch();
     if ($su && password_verify($pass, (string)$su['password_hash'])) {
-        foreach (staffList() as $s) {
-            if (($s['id'] ?? '') === $su['staff_key'] || strtolower($s['email'] ?? '') === $email) { $staff = $s; break; }
-        }
+        $staff = $profile;
         if ($staff && ($staff['status'] ?? 'active') === 'suspended') $staff = null;
         // Strip any leftover plaintext password from the payload record
         if ($staff && isset($staff['password'])) {
@@ -146,11 +158,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$staff) {
         $d = null;
         foreach (staffList() as $s) {
-            if (strtolower($s['email'] ?? '') !== $email || !isset($s['password']) || $s['password'] === '') continue;
+            if (($s['id'] ?? '') !== ($profile['id'] ?? null) || !isset($s['password']) || $s['password'] === '') continue;
             if (!hash_equals((string)$s['password'], $pass)) continue;
             db()->prepare('INSERT INTO staff_users (staff_key, email, password_hash) VALUES (?, ?, ?)
                 ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)')
-                ->execute([$s['id'], $email, password_hash($pass, PASSWORD_DEFAULT)]);
+                ->execute([$s['id'], strtolower(trim($s['email'])), password_hash($pass, PASSWORD_DEFAULT)]);
             $d = $d ?? loadData();
             foreach (($d['staff'] ?? []) as $i => $x) { if (($x['id'] ?? '') === ($s['id'] ?? '')) unset($d['staff'][$i]['password']); }
             if (($s['status'] ?? 'active') !== 'suspended') $staff = $s;
@@ -161,6 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$isPrimary && !$staff) jsonOut(['ok' => false, 'error' => 'invalid credentials'], 401);
 
+    session_regenerate_id(true);
+    unset($_SESSION['gents_client_id']);
     $_SESSION['gents_admin'] = true;
     $_SESSION['gents_staff_id'] = $staff['id'] ?? ('admin_users:' . ($adm['id'] ?? 0));
     jsonOut(['ok' => true, 'staff' => $staff ? publicStaff($staff) : ['id' => 'admin_users:' . $adm['id'], 'name' => $adm['username'], 'email' => $adm['email'], 'role' => 'Super Admin', 'permissions' => '*']]);
