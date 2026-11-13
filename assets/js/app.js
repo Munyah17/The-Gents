@@ -7,7 +7,6 @@ const TIERS=[
 {id:'gold',name:'Gold',price:10,color:'#d4af37',perks:'10% off retail · priority booking · 100 pts per visit'},
 {id:'diamond',name:'Diamond',price:15,color:'#67e8f9',perks:'15% off · free beard trim monthly · 150 pts per visit'},
 {id:'platinum',name:'Platinum',price:25,color:'#e5e4e2',perks:'20% off · dedicated barber · early access · 250 pts per visit'}];
-const MEMBERS=[{id:'m001',memberNo:'GT-M-0001',name:'T. Moyo',pseudo:'TM',profession:'Engineer',email:'tmoyo@example.com',branch:'borrowdale',tier:'gold',joined:'2025-11-02',status:'active'}];
 const HE=[{title:'Modern Grooming for the Gentleman',desc:'Precision cuts, expert grooming and a premium lounge experience.',photo:'/uploads/site/a10a0712.jpg'},{title:'Your Style. Our Craft.',desc:'Thoughtful details and precision barbering for every gentleman.',photo:'/uploads/site/a10a0713.jpg'},{title:'A Cut Above the Ordinary.',desc:'A relaxed space, skilled hands and a fresh look.',photo:'/uploads/site/a10a0714.jpg'},{title:'Made for the Modern Gent.',desc:'Discover signature haircuts, shaves and personal grooming.',photo:'/uploads/site/a10a0715.jpg'},{title:'Find Your Perfect Barber.',desc:'Choose your branch, barber and preferred time in minutes.',photo:'/uploads/site/a10a0716.jpg'}];
 const GE=['0717','0723','0724','0725','0726','0727'].map(n=>({url:'/uploads/site/a10a'+n+'.jpg',alt:"The Gent's grooming center",category:'Grooming Center'})).concat(['0718','0719','0720','0721','0722'].map(n=>({url:'/uploads/site/a10a'+n+'.jpg',alt:'The Gent’s barbers at work',category:'Haircuts'})));
 const SERVICES=[{id:'hot-towels',name:'Hot Towels Cut & Shave',desc:'Precision cut and shave finished with warm towels.',price:15,duration:25,icon:'♨',branches:['borrowdale','fife']},{id:'skin-fade-nodye',name:'Skin Fade — No Dye',desc:'A seamless skin fade, no colour added.',price:10,duration:20,icon:'✂',branches:['borrowdale','fife']},{id:'skin-fade-dye',name:'Skin Fade — With Dye',desc:'Skin fade finished with colour dye.',price:15,duration:30,icon:'✂',branches:['borrowdale','fife']},{id:'taper-fade',name:'Taper Fade',desc:'A clean taper that blends naturally.',price:15,duration:30,icon:'◐',branches:['borrowdale','fife']},{id:'burst-fade',name:'Burst Fade',desc:'A curved burst fade around the ears.',price:15,duration:30,icon:'◎',branches:['borrowdale','fife']},{id:'low-fade',name:'Low Fade',desc:'A subtle, blended low fade.',price:15,duration:30,icon:'◔',branches:['borrowdale','fife']},{id:'high-fade',name:'High Fade',desc:'A bold, defined high fade.',price:15,duration:30,icon:'◑',branches:['borrowdale','fife']},{id:'ladies-cut',name:'Ladies Cut',desc:'A tailored cut, finished to perfection.',price:15,duration:30,icon:'❀',branches:['borrowdale','fife']},{id:'kids-cut',name:'Kids Cut',desc:'A patient, quality cut for the little gents.',price:10,duration:30,icon:'★',branches:['borrowdale','fife']},{id:'beard-nodye',name:'Beard Shave — No Dye',desc:'A clean beard line-up, no colour.',price:5,duration:5,icon:'♜',branches:['borrowdale','fife']},{id:'beard-dye',name:'Beard Shave — With Dye',desc:'Beard sculpting finished with dye.',price:10,duration:15,icon:'♜',branches:['borrowdale','fife']},{id:'clean-shave',name:'Clean Shave',desc:'A close, smooth clean shave.',price:10,duration:10,icon:'⌁',branches:['borrowdale','fife']},{id:'white-tint',name:'White Tint',desc:'A crisp white colour tint.',price:30,duration:60,icon:'❆',branches:['borrowdale','fife']},{id:'color-tint',name:'Color Tint — Other Colors',desc:'Custom colour tint in any shade.',price:25,duration:60,icon:'✧',branches:['borrowdale','fife']}];
@@ -17,8 +16,6 @@ const KEY='gents_prototype_v6';let db=structuredClone(initial);if(!db.membership
 const today=new Date();today.setHours(12,0,0,0);const dateOffset=(n)=>{let d=new Date(today);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 
 if(!Array.isArray(db.hero)||!db.hero.length)db.hero=HE.map(x=>({...x}));if(!Array.isArray(db.gallery)||!db.gallery.length)db.gallery=GE.map(x=>({...x}));if(!db.settings)db.settings={name:'The Gent’s',phone:'+263 79 052 0449',email:'admin@thegents.co.zw',whatsapp:'+263 79 052 0449',address:'Kudu Corner & Five Avenue, Harare',logo:'/uploads/logo-the-gents.jpg',social:{facebook:'https://www.facebook.com/share/1E9i4XqKWj/',instagram:'https://www.instagram.com/gents_cut_and_shaves',tiktok:'https://www.tiktok.com/@thegentscutandshaves'}};
-const SVC_MAP={'cut':'skin-fade-nodye','beard':'beard-nodye','shave':'clean-shave','facial':'hot-towels','package':'hot-towels'};
-if(db.services&&db.services.some(s=>SVC_MAP[s.id])){db.services=structuredClone(SERVICES);(db.bookings||[]).forEach(b=>{if(SVC_MAP[b.service])b.service=SVC_MAP[b.service]});(db.barbers||[]).forEach(b=>{if(Array.isArray(b.services))b.services=[...new Set(b.services.map(s=>SVC_MAP[s]||s))]})}
 let remoteTimer=null,remoteDirty=false,remoteRev=null;let remoteReadyResolve=()=>{};const remoteReady=new Promise(r=>remoteReadyResolve=r);
 const adoptRemote=d=>{if(!d)return;for(const k in db)delete db[k];Object.assign(db,d);syncHero()};
 const gentsRole=()=>{try{return sessionStorage.getItem('gents_auth')==='admin'?'admin':'guest'}catch(e){return 'guest'}};
@@ -26,7 +23,7 @@ const remoteSave=()=>{if(!/^https?:$/.test(location.protocol))return;remoteDirty
 window.addEventListener('pagehide',()=>{if(remoteDirty&&/^https?:$/.test(location.protocol)){try{navigator.sendBeacon('api/db.php',JSON.stringify(db))}catch(e){}}});
 async function bootRemote(){if(!/^https?:$/.test(location.protocol)){remoteReadyResolve();return}try{const r=await fetch('api/db.php',{credentials:'same-origin'});if(!r.ok)return;const j=await r.json();if(!j||!j.ok)return;remoteRev=j.rev||remoteRev;if(j.data){if(!remoteDirty)adoptRemote(j.data)}else remoteSave();if(gentsRole()==='admin'){const ar=await fetch('api/auth.php',{credentials:'same-origin'});const aj=await ar.json().catch(()=>null);if(!aj||!aj.ok){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff')}catch(e){}if(page==='admin')render()}}}catch(e){}finally{remoteReadyResolve()}}
 const save=(push=true)=>{if(!/^https?:$/.test(location.protocol))storage.setItem(KEY,JSON.stringify(db));if(push)remoteSave()};save(false);
-let page=document.body.dataset.page||'home',dark=storage.getItem('gents_theme')!=='light',dashboardTab='overview',clientTab='upcoming',branchFilter='all',barberFilter='all',galleryFilter='all',bookingStep=0,booking={},selectedImage='',dateStart=1;
+let page=document.body.dataset.page||'home',dark=storage.getItem('gents_theme')!=='light',dashboardTab='overview',clientTab='upcoming',branchFilter='all',barberFilter='all',galleryFilter='all',bookingStep=0,booking={};
 if(dark)document.documentElement.classList.add('dark');
 const auth=(r)=>{try{return sessionStorage.getItem('gents_auth')===r}catch(e){return false}};const esc=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const branch=(id)=>db.branches.find(x=>x.id===id)||{name:id,place:''};const service=(id)=>db.services.find(x=>x.id===id)||{name:id,price:0,duration:30};const barber=(id)=>db.barbers.find(x=>x.id===id)||{name:id};const money=(x)=>'$'+Number(x||0).toFixed(2);
@@ -71,21 +68,7 @@ if(bookingStep===2){let bx=db.barbers.filter(x=>x.branch===booking.branch&&x.ser
 if(bookingStep===3){let days=Array.from({length:14},(_,i)=>{let d=new Date(today);d.setDate(d.getDate()+i+1);const iso=d.toISOString().slice(0,10);return {iso,day:d.toLocaleDateString('en-ZW',{weekday:'short'}),n:d.getDate()}});let slots=['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];return `<h2>Choose a Date & Time</h2><p class="muted">Available times are illustrative.</p><div class="date-grid">${days.map(d=>`<button class="date-choice ${booking.date===d.iso?'selected':''}" data-action="book-choose-date:${d.iso}"><small>${d.day}</small><strong>${d.n}</strong></button>`).join('')}</div><div style="margin-top:25px"><strong>Available times ${booking.date?'· '+fmt(booking.date):''}</strong><div class="times">${slots.map(t=>{const busy=booking.date&&db.bookings.some(b=>b.date===booking.date&&b.time===t&&b.branch===booking.branch&&['Pending','Confirmed'].includes(b.status)&&(booking.barber==='any'||b.barber===booking.barber));return `<button class="time-choice ${booking.time===t?'selected':''}" data-action="book-choose-time:${t}" ${busy?'disabled':''}>${t}</button>`}).join('')}</div></div>`}
 if(bookingStep===4)return `<h2>Your Details</h2><p class="muted">We’ll use these details for your appointment notification.</p><div class="form-grid"><div class="form-group"><label class="form-label">Full name *</label><input class="field" id="bk-name" value="${esc(booking.name)}" placeholder="Your full name"></div><div class="form-group"><label class="form-label">Phone *</label><input class="field" id="bk-phone" value="${esc(booking.phone)}" placeholder="+263..."></div><div class="form-group"><label class="form-label">Email *</label><input class="field" id="bk-email" type="email" value="${esc(booking.email)}" placeholder="you@example.com"></div><div class="form-group"><label class="form-label">Notes (optional)</label><input class="field" id="bk-notes" value="${esc(booking.notes||'')}" placeholder="Any special requests?"></div></div><div class="notice">Your request is subject to approval by the branch receptionist.</div>`;
 return `<h2>Review Your Booking</h2><p class="muted">Check the details before sending your request.</p><div class="review-grid"><div>${[['Branch',branch(booking.branch).name],['Service',service(booking.service).name],['Barber',booking.barber==='any'?'Any Available Barber':barber(booking.barber).name],['Date',fmt(booking.date)],['Time',booking.time],['Name',booking.name],['Phone',booking.phone],['Email',booking.email]].map(([a,b])=>`<div class="summary-row"><span>${a}</span><strong>${esc(b)}</strong></div>`).join('')}</div><div class="card card-pad"><div class="eyebrow">BOOKING SUMMARY</div><h2 style="margin:12px 0">${money(service(booking.service).price)}</h2><p class="muted">${esc(service(booking.service).name)} · ${service(booking.service).duration} min</p><div class="notice" style="margin-top:25px">⏳ This booking is <b>not yet confirmed</b>. The receptionist will review your request.</div></div></div>`}
-function client(){if(!auth('client')){location.replace('login');return''}let list=db.bookings.filter(x=>x.phone==='+263771234567'||x.clientCreated);let upcoming=list.filter(x=>x.status!=='Completed'&&x.status!=='Cancelled'&&x.status!=='Declined');let past=list.filter(x=>!upcoming.includes(x));return dashboardFrame('client',`<div class="dash-top"><div><div class="eyebrow">YOUR ACCOUNT</div><h1>My Bookings</h1><p class="muted">View and manage your appointments.</p></div>${button('Book New Appointment →','start-booking','btn btn-gold')}</div><div class="segmented" style="margin-bottom:22px"><button class="pill ${clientTab==='upcoming'?'active':''}" data-action="client-tab:upcoming">Upcoming (${upcoming.length})</button><button class="pill ${clientTab==='past'?'active':''}" data-action="client-tab:past">Past (${past.length})</button></div>${(clientTab==='upcoming'?upcoming:past).map(b=>`<div class="appointment" style="margin-bottom:12px"><div><strong>${esc(service(b.service).name)}</strong><small>⌖ ${esc(branch(b.branch).name)} · ${esc(barber(b.barber).name)} · ${fmt(b.date)} at ${esc(b.time)}</small></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${badge(b.status)}<button class="btn btn-sm" data-action="view-booking:${b.id}">Details</button>${b.status==='Confirmed'||b.status==='Pending'?`<button class="btn btn-sm" data-action="client-cancel:${b.id}">Cancel</button>`:''}${b.status==='Completed'?`<button class="btn btn-sm" data-action="rebook:${b.id}">Rebook</button>`:''}</div></div>`).join('')||`<div class="empty card">No ${clientTab} bookings yet. Try booking an appointment to add one.</div>`}`)}
-function dashboardFrame(role,content){const admin=role==='admin';let items=admin?[["overview","Dashboard","⌂"],["bookings","Bookings","▢"],["calendar","Calendar","▦"],["branches","Branches","⌖"],["barbers","Barbers","✂"],["services","Services","✧"],["clients","Clients","♧"],["reports","Reports","▥"],["settings","Settings","⚙"]]:[["mybookings","My Bookings","▢"],["profile","Profile","♙"]];const selected=admin?dashboardTab:'mybookings';let nav=items.map(([key,title,ico])=>`<button class="${selected===key?'active':''}" data-action="${admin?'admin-tab':'client-side'}:${key}">${ico} &nbsp; ${title}</button>`).join('');return `<div class="dashboard"><aside class="side"><a class="brand" data-page="home"><div class="brand-icon">⚒</div><div><div class="brand-title">The Gent’s</div><div class="brand-sub">BARBER & GENTS GROOMING CENTER</div></div></a><div class="side-nav">${nav}<button data-page="home">↗ &nbsp; Visit Website</button></div></aside><div><div class="dash-mobile">${nav}</div><main class="dash-main">${content}</main></div></div>`}
 function admin(){return auth('admin')?dashboardFrame('admin',adminBody()):loginCard('admin')}
-function adminBody(){let f=branchFilter==='all'?db.bookings:db.bookings.filter(b=>b.branch===branchFilter);const top=`<div class="dash-top"><div><div class="eyebrow">THE GENT’S · MANAGEMENT</div><h1>${({overview:'Admin Dashboard',bookings:'Bookings',calendar:'Appointment Calendar',branches:'Branches',barbers:'Barbers',services:'Services',clients:'Clients',reports:'Reports & Analytics',settings:'Settings'})[dashboardTab]}</h1><p class="muted">${dashboardTab==='overview'?'Overview of bookings and branch performance.':'Changes are saved in your browser.'}</p></div><select id="admin-branch" class="field" style="width:205px"><option value="all">All Branches</option>${db.branches.map(b=>`<option value="${b.id}" ${branchFilter===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`;
-const counts=(s)=>f.filter(x=>x.status===s).length;
-if(dashboardTab==='overview')return top+`<div class="stat-grid">${[['▢',f.length,'Total Bookings'],['✓',counts('Confirmed'),'Confirmed'],['◷',counts('Pending'),'Pending'],['×',counts('Cancelled'),'Cancelled']].map(([ico,num,t])=>`<div class="stat"><span class="stat-icon">${ico}</span><div class="number">${num}</div><div class="small">${t}</div></div>`).join('')}</div><div class="panel">${bookingTable(f.slice().reverse().slice(0,7),'Recent Bookings',true)}</div><div class="dash-grid"><div class="panel"><div class="panel-head"><h3>Branch Performance</h3></div>${db.branches.map(x=>{let n=db.bookings.filter(b=>b.branch===x.id).length;return `<div class="progress-row"><span>${esc(x.name)}</span><div class="track"><div class="fill" style="width:${Math.max(3,n/db.bookings.length*100)}%"></div></div><b>${n}</b></div>`}).join('')}</div><div class="panel"><div class="panel-head"><h3>Quick Actions</h3></div><div class="grid grid-3">${button('+ Walk-in','walkin','btn')}${button('+ Branch','add-branch','btn')}${button('Pending','admin-tab:bookings','btn')}</div></div></div>`;
-if(dashboardTab==='bookings')return top+`<div class="panel"><div class="panel-head"><h3>All Bookings</h3><div class="auth-actions">${button('+ Walk-in','walkin','btn btn-gold btn-sm')}${button('Reset Data','reset','btn btn-sm')}</div></div>${bookingTable(f.slice().reverse(),'Booking Requests',false)}</div>`;
-if(dashboardTab==='calendar'){let groups=[...new Set(f.map(x=>x.date))].sort();return top+`<div class="panel"><div class="panel-head"><h3>Calendar</h3>${button('+ Walk-in','walkin','btn btn-gold btn-sm')}</div>${groups.map(day=>`<h3 style="font-size:20px;margin:25px 0 12px">${fmt(day)}</h3>${f.filter(b=>b.date===day).sort((a,b)=>a.time.localeCompare(b.time)).map(b=>`<div class="appointment"><div><strong>${esc(b.time)} · ${esc(b.name)}</strong><small>${esc(service(b.service).name)} · ${esc(barber(b.barber).name)} · ${esc(branch(b.branch).name)}</small></div>${badge(b.status)}</div>`).join('')}`).join('')||'<p class="muted">No appointments.</p>'}</div>`}
-if(dashboardTab==='branches')return top+`<div class="panel"><div class="panel-head"><h3>Branch Directory</h3>${button('+ Add Branch','add-branch','btn btn-gold btn-sm')}</div><div class="grid grid-3">${db.branches.map(x=>`<div class="card"><img class="branch-photo" src="${x.photo}"><div class="card-pad"><h3>${esc(x.name)}</h3><p class="muted small">${esc(x.place)}<br>${esc(x.hours)}</p>${button('View Page','open-branch:'+x.id,'btn btn-sm')}</div></div>`).join('')}</div></div>`;
-if(dashboardTab==='barbers')return top+`<div class="panel"><div class="panel-head"><h3>Team</h3>${button('+ Add Barber','add-barber','btn btn-gold btn-sm')}</div><div class="grid grid-4">${db.barbers.map(barberCard).join('')}</div></div>`;
-if(dashboardTab==='services')return top+`<div class="panel"><div class="panel-head"><h3>Services & Prices</h3>${button('+ Add Service','add-service','btn btn-gold btn-sm')}</div>${db.services.map(x=>`<div class="service-row"><span class="service-icon">${x.icon}</span><div class="service-text"><strong>${esc(x.name)}</strong><small>${x.duration} min</small></div><b>${money(x.price)}</b>${button('Edit','edit-service:'+x.id,'btn btn-sm')}</div>`).join('')}</div>`;
-if(dashboardTab==='clients'){let clients=[...new Map(db.bookings.map(x=>[x.phone,x])).values()];return top+`<div class="panel"><div class="panel-head"><h3>Customers (${clients.length})</h3></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Last Booking</th></tr></thead><tbody>${clients.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td>${esc(x.email)}</td><td>${fmt(x.date)}</td></tr>`).join('')}</tbody></table></div></div>`}
-if(dashboardTab==='reports'){const total=f.length||1;return top+`<div class="stat-grid">${[['◉','1,284','Visitors (sample)'],['↗','3.8%','Booking rate (sample)'],['▢',f.length,'Actual bookings'],['✓',counts('Confirmed'),'Confirmed appointments']].map(([i,n,t])=>`<div class="stat"><div class="stat-icon">${i}</div><div class="number">${n}</div><div class="small">${t}</div></div>`).join('')}</div><div class="dash-grid"><div class="panel"><h3>Booking Status</h3>${['Pending','Confirmed','Cancelled','Completed'].map(x=>`<div class="progress-row"><span>${x}</span><div class="track"><div class="fill" style="width:${counts(x)/total*100}%"></div></div><b>${counts(x)}</b></div>`).join('')}</div><div class="panel"><h3>Source Breakdown</h3>${['Online','Walk-in'].map(x=>{let n=f.filter(b=>b.source===x).length;return `<div class="progress-row"><span>${x}</span><div class="track"><div class="fill" style="width:${n/total*100}%"></div></div><b>${n}</b></div>`}).join('')}<p class="small muted">Visitor figures above are illustrative; bookings reflect actual data.</p></div></div>`}
-return top+`<div class="panel" style="max-width:620px"><h3>Settings</h3><p class="muted">Theme, sample data and local state controls.</p><div class="auth-actions">${button('Toggle Theme','theme')}${button('Reset Sample Data','reset')}${button('Preview Website','go:home','btn btn-gold')}</div><p class="muted small" style="margin-top:25px">In production, SMTP, WhatsApp Business API, roles and SEO settings would be configured on the PHP/MySQL backend. This prototype makes no network changes.</p></div>`}
-function bookingTable(list,title,short){return `${short?`<div class="panel-head"><h3>${title}</h3>${button('View All','admin-tab:bookings','btn btn-sm')}</div>`:''}<div class="table-wrap"><table><thead><tr><th>Time</th><th>Client</th><th>Service</th><th>Barber</th><th>Branch</th><th>Status</th><th>Action</th></tr></thead><tbody>${list.map(b=>`<tr><td>${fmt(b.date)}<br><span class="muted">${esc(b.time)}</span></td><td>${esc(b.name)}</td><td>${esc(service(b.service).name)}</td><td>${esc(barber(b.barber).name)}</td><td>${esc(branch(b.branch).name)}</td><td>${badge(b.status)}</td><td>${b.status==='Pending'?`<div class="row-actions"><button class="btn btn-sm" data-action="approve:${b.id}">✓</button><button class="btn btn-sm" data-action="decline:${b.id}">×</button></div>`:button('View','view-booking:'+b.id,'btn btn-sm')}</td></tr>`).join('')}</tbody></table>${list.length?'':'<div class="empty">No bookings yet.</div>'}</div>`}
 function login(){if(auth('admin')){location.replace('admin');return''}if(auth('client')){location.replace('client');return''}return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class="shell" style="max-width:560px"><div class="page-panel" style="margin:60px auto"><div class="eyebrow">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style="margin:12px 0 6px">Sign In</h2><p class="muted">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id="login-form" data-role="${role}"><div class="form-group"><label class="form-label">Email, name or pseudonym</label><input class="field" type="text" required name="email" placeholder="you@example.com · Alex Demo · AD"></div><div class="form-group"><label class="form-label">Password</label><input class="field" type="password" required name="password" placeholder="Enter your password"></div><button class="btn btn-gold" type="submit" style="width:100%">Sign In →</button></form><p class="muted small" style="margin-top:20px;text-align:center">${admin?'':'New here? <a href="booking" style="color:var(--gold)">Book an appointment</a> · <a href="#" data-action="cl-register" style="color:var(--gold)">Create account</a>'}</p></div></div>`}function confirmPage(){return `<div class="shell" style="max-width:740px;text-align:center"><div class="section"><div style="display:inline-grid;place-items:center;background:var(--gold-soft);color:var(--gold);width:72px;height:72px;border-radius:50%;font-size:29px;margin-bottom:20px">✓</div><div class="eyebrow">REQUEST SUBMITTED</div><h1>Booking Request Received</h1><p class="muted">Your request has been sent to the branch receptionist for review. Notifications are simulated.</p><div class="page-panel" style="margin:25px auto;max-width:540px;text-align:left">${[['Booking reference',booking.id],['Branch',branch(booking.branch).name],['Service',service(booking.service).name],['Date',fmt(booking.date)],['Time',booking.time],['Status','Pending approval']].map(([k,v])=>`<div class="summary-row"><span>${k}</span><strong>${esc(v)}</strong></div>`).join('')}</div>${button('My Bookings','go:client','btn btn-gold')} ${button('Back to Home','go:home')}</div></div>`}
 function render(){syncHero();let body;if(page.startsWith('branch:'))body=branchPage(page.slice(7));else body=({home,services,barbers,gallery,membership,contact,booking:bookingPage,client,admin,login,confirmation:confirmPage})[page]?.()||home();document.getElementById('app').innerHTML=header()+`<div class="page">${body}</div>`+(page==='admin'||page==='client'?'':footer());document.title=`The Gent’s · ${page.charAt(0).toUpperCase()+page.slice(1)}`;document.querySelector('meta[name=theme-color]').content=dark?'#111111':'#ffffff';}
 function navigate(p){if(p.startsWith('branch:')){location.href='branch#'+p.slice(7);return}const f={home:'index',services:'services',barbers:'barbers',gallery:'gallery',membership:'membership',contact:'contact',login:'login',booking:'booking',client:'client',admin:'admin',confirmation:'booking'}[p]||'index';const fp=(location.pathname.split('/').pop()||'index');if(f===fp){page=p;window.scrollTo({top:0,behavior:'instant'});render()}else location.href=f}
@@ -99,13 +82,8 @@ if(cmd==='book-choose-branch'){booking.branch=val;booking.barber='';if(booking.s
 if(cmd==='book-submit'){const assigned=booking.barber==='any'?(db.barbers.find(x=>x.branch===booking.branch&&x.services.includes(booking.service))||{}).id:booking.barber;if(!assigned)return toast('No available barber for this selection.');if(db.bookings.some(x=>x.branch===booking.branch&&x.barber===assigned&&x.date===booking.date&&x.time===booking.time&&['Pending','Confirmed'].includes(x.status)))return toast('This slot has just been taken. Please choose another.');booking.id='GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6);db.bookings.push({...booking,barber:assigned,status:'Pending',source:'Online',clientCreated:true,clientEmail:clEmail()});db.notifications.unshift('New booking '+booking.id+' for '+branch(booking.branch).name);try{sessionStorage.setItem('gents_auth','client')}catch(e){}save();return navigate('confirmation')}
 if(cmd==='admin-tab'){dashboardTab=val;return render()}if(cmd==='client-tab'){clientTab=val;return render()}if(cmd==='client-side'){if(val==='profile')return toast('Profile changes are not enabled yet.');return render()}
 if(cmd==='approve'||cmd==='decline'||cmd==='client-cancel'){let b=db.bookings.find(x=>x.id===val);if(!b)return;if(cmd==='client-cancel'&&!confirm('Cancel this booking?'))return;b.status=cmd==='approve'?'Confirmed':cmd==='decline'?'Declined':'Cancelled';db.notifications.unshift(`Booking ${b.id} ${b.status}. Email and WhatsApp confirmation simulated.`);save();toast(`Booking ${b.id} ${b.status.toLowerCase()}. Email and WhatsApp notices simulated.`);return render()}
-if(cmd==='view-booking'){let b=db.bookings.find(x=>x.id===val);return modal('Appointment '+esc(val),[['Customer',b.name],['Branch',branch(b.branch).name],['Service',service(b.service).name],['Barber',barber(b.barber).name],['Date & time',fmt(b.date)+' · '+b.time],['Status',b.status]].map(([k,v])=>`<div class="data-line"><span class="muted">${k}</span><b>${esc(v)}</b></div>`).join('')+(b.status==='Pending'?`<div class="auth-actions" style="margin-top:20px"><button class="btn btn-gold" data-action="approve:${b.id}">Approve</button><button class="btn" data-action="decline:${b.id}">Decline</button></div>`:''))}
 if(cmd==='rebook'){let b=db.bookings.find(x=>x.id===val);try{sessionStorage.setItem('gents_booking_preset',JSON.stringify({branch:b.branch,service:b.service,barber:b.barber}))}catch(e){}location.href='booking';return}
 if(cmd==='walkin')return modal('Register Walk-in',`<form id="walkin-form"><div class="form-group"><label class="form-label">Client name</label><input name="name" required class="field" placeholder="Customer name"></div><div class="form-group"><label class="form-label">Branch</label><select name="branch" required class="field">${db.branches.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Service</label><select name="service" required class="field">${db.services.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Date & time</label><input type="date" name="date" class="field" required min="${dateOffset(0)}" value="${dateOffset(1)}"><select name="time" class="field" style="margin-top:9px">${['09:00','10:00','11:00','12:00','13:00','14:00','15:00'].map(x=>`<option>${x}</option>`).join('')}</select></div><button class="btn btn-gold" type="submit">Register Walk-in</button></form>`)
-if(cmd==='add-branch')return modal('Add Branch',`<form id="branch-form"><div class="form-group"><label class="form-label">Branch name</label><input name="name" required class="field" placeholder="New location"></div><div class="form-group"><label class="form-label">Address</label><input name="place" required class="field" placeholder="Location, city"></div><button class="btn btn-gold">Add Branch</button></form>`)
-if(cmd==='add-barber')return modal('Add Barber',`<form id="barber-form"><div class="form-group"><label class="form-label">Name</label><input name="name" required class="field" placeholder="Barber name"></div><div class="form-group"><label class="form-label">Branch</label><select name="branch" class="field">${db.branches.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></div><button class="btn btn-gold">Add Barber</button></form>`)
-if(cmd==='add-service')return modal('Add Service',`<form id="service-form"><div class="form-group"><label class="form-label">Service name</label><input class="field" required name="name"></div><div class="form-group"><label class="form-label">Price (USD)</label><input class="field" type="number" min="0" required name="price"></div><div class="form-group"><label class="form-label">Duration (minutes)</label><input class="field" type="number" min="5" required name="duration" value="30"></div><button class="btn btn-gold">Add Service</button></form>`)
-if(cmd==='edit-service'){let x=service(val);return modal('Edit Service',`<form id="edit-service-form"><input type="hidden" name="id" value="${esc(x.id)}"><div class="form-group"><label class="form-label">Name</label><input class="field" required name="name" value="${esc(x.name)}"></div><div class="form-group"><label class="form-label">Price</label><input class="field" type="number" min="0" required name="price" value="${x.price}"></div><button class="btn btn-gold">Save Changes</button></form>`)}
 if(cmd==='reset'){if(!confirm('Reset all data, bookings and changes?'))return;fetch('api/db.php',{method:'POST',headers:{'Content-Type':'application/json'},body:'{"__reset":true}',credentials:'same-origin'}).then(r=>r.json()).then(j=>{if(j&&j.ok){storage.removeItem(KEY);location.reload()}else toast('Reset failed — server did not confirm.')}).catch(()=>toast('Reset failed — could not reach server.'));return}
 }
 document.addEventListener('click',e=>{let el=e.target.closest('[data-action],[data-page]');if(!el||el===document.body)return;if(el.dataset.action){e.preventDefault();handle(el.dataset.action)}else if(el.dataset.page){e.preventDefault();navigate(el.dataset.page)}});
@@ -414,7 +392,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'adm-decline-form') {
+  if (form.getAttribute('id') === 'adm-decline-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -422,7 +400,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' declined.');
     save(); closeModal(); toast('Booking ' + b.id + ' declined.'); render(); return;
   }
-  if (form.id === 'adm-pay-form') {
+  if (form.getAttribute('id') === 'adm-pay-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -430,7 +408,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' paid via ' + b.payment + '.');
     save(); closeModal(); toast('Payment recorded for ' + b.id + '.'); render(); return;
   }
-  if (form.id === 'login-form') {
+  if (form.getAttribute('id') === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
     const role = form.dataset.role === 'admin' ? 'admin' : 'client';
@@ -455,27 +433,27 @@ document.addEventListener('submit', async e => {
       return;
     } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
   }
-  if (form.id === 'adm-branch-form') {
+  if (form.getAttribute('id') === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (v.id) { const x = db.branches.find(b => b.id === v.id); if (x) Object.assign(x, { name: v.name, place: v.place, hours: v.hours, photo: v.photo || x.photo }); toast('Branch updated.'); }
     else { db.branches.push({ id: v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4), name: v.name, place: v.place, hours: v.hours || 'Mon–Sat · 09:00–18:00', photo: v.photo || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&q=80' }); toast('Branch added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-barber-form') {
+  if (form.getAttribute('id') === 'adm-barber-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const sv = fd.getAll('services');
     const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', bio: v.bio || '', services: sv.length ? sv : db.services.map(s => s.id) };
     if (v.id) { const x = db.barbers.find(b => b.id === v.id); if (x) Object.assign(x, data); toast('Barber updated.'); }
     else { db.barbers.push({ id: 'barber' + Date.now(), ...data }); toast('Barber added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-service-form') {
+  if (form.getAttribute('id') === 'adm-service-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const bv = fd.getAll('branches');
     const data = { name: v.name, desc: v.desc || 'Grooming service', image: v.image || '', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
     if (v.id) { const x = db.services.find(s => s.id === v.id); if (x) Object.assign(x, data); toast('Service updated.'); }
     else { db.services.push({ id: 'srv' + Date.now(), ...data }); toast('Service added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-settings-form') {
+  if (form.getAttribute('id') === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address, logo: v.logo || '', social: { facebook: v.fb || '', instagram: v.ig || '', tiktok: v.tt || '' } };
     save(); toast('Settings saved.'); return;
@@ -697,7 +675,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'client-auth-form') {
+  if (form.getAttribute('id') === 'client-auth-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const btn = form.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
@@ -714,7 +692,7 @@ document.addEventListener('submit', async e => {
     } catch (x) { toast('Could not reach the server — check your connection.'); }
     if (btn) btn.disabled = false; return;
   }
-  if (form.id === 'cl-topup-form') {
+  if (form.getAttribute('id') === 'cl-topup-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const amount = Number(v.amount);
@@ -730,7 +708,7 @@ document.addEventListener('submit', async e => {
       else toast((j && j.error) || 'Top-up failed.');
     }).catch(() => toast('Could not reach the server.')); return;
   }
-  if (form.id === 'cl-gc-form') {
+  if (form.getAttribute('id') === 'cl-gc-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     clApi('issue-giftcard', { amount: Number(v.amount), toName: v.toName, toEmail: v.toEmail, maxUses: Number(v.maxUses), serviceId: v.serviceId || '', expiresAt: v.expiresAt || '' }).then(j => {
@@ -738,7 +716,7 @@ document.addEventListener('submit', async e => {
       else toast((j && j.error) || 'Could not issue gift card.');
     }).catch(() => toast('Could not reach the server.')); return;
   }
-  if (form.id !== 'cl-profile-form') return;
+  if (form.getAttribute('id') !== 'cl-profile-form') return;
   e.preventDefault();
   const v = Object.fromEntries(new FormData(form));
   db.clientProfile = { name: v.name, phone: v.phone, email: v.email, favBranch: v.favBranch || '', favBarber: v.favBarber || '' };
@@ -881,7 +859,7 @@ function admUsers(top) {
 function usrForm(id) {
   const x = id ? clientProfiles().find(c => c.id === id) : { name: '', phone: '', email: '', status: 'active', note: '' };
   if (id && !x) return;
-  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
+  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><div class="form-group"><label class="form-label">Portal password (optional — creates a client login)</label><input class="field" type="password" name="portalPass" minlength="6" placeholder="Leave blank for walk-in records only"></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
 }
 
 // =====================================================================
@@ -919,7 +897,7 @@ function stfForm(id) {
   if (id && !x) return;
   const isAdmin = x.permissions === '*';
   const roleOpts = (db.roles || []).map(r => `<option value="${r.id}" ${x.roleId === r.id ? 'selected' : ''}>${esc(r.name)} (role)</option>`).join('');
-  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
+  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" minlength="6" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
 }
 
 function stfPerms(id) {
@@ -1225,13 +1203,20 @@ document.addEventListener('click', e => {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'usr-form') {
+  if (form.getAttribute('id') === 'usr-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (v.id) { const x = clientProfiles().find(c => c.id === v.id); if (x) Object.assign(x, { name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note }); toast('Client updated.'); }
     else { clientProfiles().push({ id: 'cli' + Date.now(), name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note, createdAt: new Date().toISOString().slice(0, 10) }); toast('Client added.'); }
+    if (v.portalPass) {
+      if (!v.email) toast('No email — portal login was not created.');
+      else if (v.portalPass.length < 6) toast('Portal password must be 6+ characters — login was not created.');
+      else fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-register', name: v.name, email: v.email, phone: v.phone, password: v.portalPass, noSession: true }), credentials: 'same-origin' })
+        .then(async r => { const j = await r.json().catch(() => null); toast(r.status === 409 ? 'Client saved — a login account with that email already exists.' : (j && j.ok ? 'Login account created for ' + v.email + '.' : 'Client saved, but login failed: ' + ((j && j.error) || ('server error ' + r.status)))); })
+        .catch(() => toast('Client saved — could not reach server to create login.'));
+    }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'stf-form') {
+  if (form.getAttribute('id') === 'stf-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const isAdmin = v.access === 'admin';
     const roleId = isAdmin ? '' : (v.roleId || '');
@@ -1239,37 +1224,42 @@ document.addEventListener('submit', e => {
     let sid = v.id;
     if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : (x.permissions === '*' ? [] : x.permissions), status: v.status }); } toast('Staff updated.'); }
     else { const rec = { id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : [], protected: false, status: v.status, createdAt: new Date().toISOString().slice(0, 10) }; staffAll().push(rec); sid = rec.id; toast(isAdmin ? 'Administrator added.' : 'Staff added — assign permissions from the Perms button.'); }
-    if (v.password) fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' }).catch(() => {});
+    if (v.password) {
+      if (v.password.length < 6) toast('Password must be at least 6 characters — login credentials were NOT set. Use Edit to try again.');
+      else fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' })
+        .then(async r => { const j = await r.json().catch(() => null); if (!r.ok || !(j && j.ok)) toast('Profile saved, but password rejected: ' + ((j && j.error) || ('server error ' + r.status))); })
+        .catch(() => toast('Profile saved, but password could not be sent — use Edit to set it again.'));
+    }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'role-form') {
+  if (form.getAttribute('id') === 'role-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
     const perms = fd.getAll('perm');
     if (v.id) { const r = (db.roles || []).find(x => x.id === v.id); if (r) { r.name = v.name; r.perms = perms; } toast('Role updated.'); }
     else { if (!(db.roles || []).some(r => r.name.toLowerCase() === v.name.toLowerCase())) (db.roles = db.roles || []).push({ id: 'rol' + Date.now(), name: v.name, perms, createdAt: new Date().toISOString().slice(0, 10) }); else return toast('A role with that name exists.'); toast('Role created.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'stf-perms-form') {
+  if (form.getAttribute('id') === 'stf-perms-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
     const s = staffAll().find(x => x.id === v.id); if (!s || s.protected) return;
     s.permissions = fd.getAll('perm'); save(); toast('Permissions saved for ' + s.name + '.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-tx-form') {
+  if (form.getAttribute('id') === 'erp-tx-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().transactions.push({ id: 'TX-' + Date.now().toString().slice(-6), type: v.type, category: v.category, amount: Number(v.amount) || 0, date: v.date, description: v.description || '', branch: v.branch || '' });
     db.notifications.unshift((v.type === 'income' ? 'Income' : 'Expense') + ' recorded: ' + money(v.amount) + ' — ' + (v.description || v.category));
     save(); toast(v.type === 'income' ? 'Income recorded.' : 'Expense recorded.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-petty-form') {
+  if (form.getAttribute('id') === 'erp-petty-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().pettyCash.push({ id: 'PC-' + Date.now().toString().slice(-6), date: v.date, description: v.description, receivedBy: v.receivedBy || '', amount: Number(v.amount) || 0 });
     save(); toast('Petty cash voucher saved.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-opening') {
+  if (form.getAttribute('id') === 'erp-opening') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().openingBalance = Number(v.opening) || 0; save(); toast('Opening balance updated.'); render(); return;
   }
-  if (form.id === 'ai-form') {
+  if (form.getAttribute('id') === 'ai-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const q = (v.q || '').trim(); if (!q) return;
     aiLog.push({ q, a: aiAnswer(q) }); save(); render();
     const log = document.getElementById('ai-log'); if (log) log.scrollTop = log.scrollHeight;
@@ -1450,7 +1440,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'ct-hero-form') {
+  if (form.getAttribute('id') === 'ct-hero-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const item = { id: 'hero' + Date.now(), title: v.title, desc: v.desc || '', photo: v.photo || '' };
     const i = Number(v.idx);
@@ -1458,7 +1448,7 @@ document.addEventListener('submit', e => {
     else { if (!Array.isArray(db.hero)) db.hero = []; db.hero.push(item); }
     save(); closeModal(); toast('Hero slide saved.'); render(); return;
   }
-  if (form.id === 'ct-gal-form') {
+  if (form.getAttribute('id') === 'ct-gal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!v.url) { toast('Image URL is required.'); return; }
     const item = { id: 'gal' + Date.now(), url: v.url, alt: v.alt || '', category: v.category || 'Grooming Center' };
@@ -1669,14 +1659,14 @@ function admBalForm(email) {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'adm-tier-form') {
+  if (form.getAttribute('id') === 'adm-tier-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const data = { name: v.name, price: Number(v.price) || 0, color: v.color || '#d4af37', perks: v.perks || '' };
     const i = memTiers().findIndex(x => x.id === v.id);
     if (i >= 0) Object.assign(memTiers()[i], data); else memTiers().push({ id: 'tier' + Date.now().toString(36), ...data });
     save(); closeModal(); toast('Tier saved.'); render(); return;
   }
-  if (form.id === 'adm-mem-form') {
+  if (form.getAttribute('id') === 'adm-mem-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const data = { name: v.name, pseudo: v.pseudo || '', email: (v.email || '').toLowerCase(), profession: v.profession || '', branch: v.branch, tier: v.tier, joined: v.joined || new Date().toISOString().slice(0, 10), status: v.status || 'active' };
     const i = memMembers().findIndex(x => x.id === v.id);
@@ -1684,7 +1674,7 @@ document.addEventListener('submit', e => {
     else memMembers().push({ id: 'm' + Date.now().toString(36), memberNo: nextMemberNo(), ...data });
     save(); closeModal(); toast('Member saved.'); render(); return;
   }
-  if (form.id === 'adm-gc-form') {
+  if (form.getAttribute('id') === 'adm-gc-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const g = memGiftCards().find(x => x.code === v.code); if (!g) return;
     const amt = Math.min(Number(v.amount), Number(g.remaining));
@@ -1693,18 +1683,18 @@ document.addEventListener('submit', e => {
     if (g.remaining <= 0.004 || (g.maxUses && g.uses >= g.maxUses)) g.status = 'depleted';
     save(); closeModal(); toast('Redeemed $' + amt.toFixed(2) + ' from ' + g.code + '.'); render(); return;
   }
-  if (form.id === 'adm-rw-form') {
+  if (form.getAttribute('id') === 'adm-rw-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     rwSet(String(v.email).toLowerCase(), Math.max(0, Number(v.points) || 0), v.reason || 'manual');
     save(); closeModal(); toast('Reward points updated.'); render(); return;
   }
-  if (form.id === 'adm-rwc-form') {
+  if (form.getAttribute('id') === 'adm-rwc-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!db.rewardConfig) db.rewardConfig = {};
     db.rewardConfig.perVisit = Math.max(0, Number(v.perVisit) || 0);
     save(); closeModal(); toast('Reward settings saved.'); render(); return;
   }
-  if (form.id === 'adm-bal-form') {
+  if (form.getAttribute('id') === 'adm-bal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const w = walletEnsure(v.email);
     w.balance = Math.max(0, Number(w.balance || 0) + Number(v.delta));
@@ -1713,7 +1703,7 @@ document.addEventListener('submit', e => {
   }
 });
 
-document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','branch-form','barber-form','service-form','edit-service-form','login-form'].includes(form.id))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.id==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin':'client';return}if(form.id==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.id==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}if(form.id==='branch-form'){let id=v.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString().slice(-4);db.branches.push({id,name:v.name,place:v.place,photo:IM.salon,hours:'Mon–Sat · 09:00–18:00'});toast('New branch created.')}if(form.id==='barber-form'){db.barbers.push({id:'barber'+Date.now(),name:v.name,branch:v.branch,role:'Barber',photo:IM.barber1,services:db.services.map(x=>x.id)});toast('Barber added to the team.')}if(form.id==='service-form'){db.services.push({id:'srv'+Date.now(),name:v.name,desc:'Grooming service',icon:'✂',duration:Number(v.duration),price:Number(v.price),branches:db.branches.map(x=>x.id)});toast('Service added.')}if(form.id==='edit-service-form'){let s=service(v.id);s.name=v.name;s.price=Number(v.price);toast('Service updated.')}save();closeModal();render()});
+document.addEventListener('submit',e=>{let form=e.target;if(!['contact-form','walkin-form','login-form'].includes(form.getAttribute('id')))return;e.preventDefault();let v=Object.fromEntries(new FormData(form));if(form.getAttribute('id')==='login-form'){try{sessionStorage.setItem('gents_auth',form.dataset.role==='admin'?'admin':'client')}catch(e){}location.href=form.dataset.role==='admin'?'admin':'client';return}if(form.getAttribute('id')==='contact-form'){db.contacts.push(v);save();form.reset();return toast('Message saved locally. Branch email notification simulated.')}if(form.getAttribute('id')==='walkin-form'){let b=db.barbers.find(x=>x.branch===v.branch&&x.services.includes(v.service));if(!b)return toast('No eligible barber found in this branch.');if(db.bookings.some(x=>x.branch===v.branch&&x.barber===b.id&&x.date===v.date&&x.time===v.time&&['Pending','Confirmed'].includes(x.status)))return toast('This appointment conflicts with an existing booking.');db.bookings.push({id:'GT-'+(1050+db.bookings.length)+'-'+Math.random().toString(36).slice(2,6),name:v.name,phone:'Walk-in',email:'—',branch:v.branch,service:v.service,barber:b.id,date:v.date,time:v.time,status:'Confirmed',source:'Walk-in'});toast('Walk-in registered and calendar updated.')}save();closeModal();render()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 async function verifySession(){if(!/^https?:$/.test(location.protocol))return true;let a=null;try{a=sessionStorage.getItem('gents_auth')}catch(e){}if(a!=='admin'&&a!=='client')return true;try{const r=await fetch('api/auth.php',{credentials:'same-origin'});if(r.status===401){try{sessionStorage.removeItem('gents_auth');sessionStorage.removeItem('gents_staff');sessionStorage.removeItem('gents_client')}catch(e){}if(page==='admin'){toast('Session expired — please sign in again.');location.href='login'}else if(page==='client'){location.href='login'}return false}return true}catch(e){return true}}
 async function bootRender(){const prot=(page==='admin'||page==='client');let a=null;try{a=sessionStorage.getItem('gents_auth')}catch(e){}const vs=verifySession();if(prot&&a){if(!await vs)return}try{await remoteReady}catch(e){}render()}

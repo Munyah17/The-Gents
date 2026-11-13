@@ -302,7 +302,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'adm-decline-form') {
+  if (form.getAttribute('id') === 'adm-decline-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -310,7 +310,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' declined.');
     save(); closeModal(); toast('Booking ' + b.id + ' declined.'); render(); return;
   }
-  if (form.id === 'adm-pay-form') {
+  if (form.getAttribute('id') === 'adm-pay-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const b = db.bookings.find(x => x.id === v.id); if (!b) return;
@@ -318,7 +318,7 @@ document.addEventListener('submit', async e => {
     db.notifications.unshift('Booking ' + b.id + ' paid via ' + b.payment + '.');
     save(); closeModal(); toast('Payment recorded for ' + b.id + '.'); render(); return;
   }
-  if (form.id === 'login-form') {
+  if (form.getAttribute('id') === 'login-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const fd = new FormData(form); const em = (fd.get('email') || '').trim(); const pw = fd.get('password') || '';
     const role = form.dataset.role === 'admin' ? 'admin' : 'client';
@@ -343,27 +343,27 @@ document.addEventListener('submit', async e => {
       return;
     } catch (x) { toast('Sign-in service unavailable — check your connection.'); return; }
   }
-  if (form.id === 'adm-branch-form') {
+  if (form.getAttribute('id') === 'adm-branch-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (v.id) { const x = db.branches.find(b => b.id === v.id); if (x) Object.assign(x, { name: v.name, place: v.place, hours: v.hours, photo: v.photo || x.photo }); toast('Branch updated.'); }
     else { db.branches.push({ id: v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4), name: v.name, place: v.place, hours: v.hours || 'Mon–Sat · 09:00–18:00', photo: v.photo || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&q=80' }); toast('Branch added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-barber-form') {
+  if (form.getAttribute('id') === 'adm-barber-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const sv = fd.getAll('services');
     const data = { name: v.name, role: v.role || 'Barber', branch: v.branch, photo: v.photo || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=620&q=80', bio: v.bio || '', services: sv.length ? sv : db.services.map(s => s.id) };
     if (v.id) { const x = db.barbers.find(b => b.id === v.id); if (x) Object.assign(x, data); toast('Barber updated.'); }
     else { db.barbers.push({ id: 'barber' + Date.now(), ...data }); toast('Barber added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-service-form') {
+  if (form.getAttribute('id') === 'adm-service-form') {
     e.preventDefault(); const fd = new FormData(form); const v = Object.fromEntries(fd); const bv = fd.getAll('branches');
     const data = { name: v.name, desc: v.desc || 'Grooming service', image: v.image || '', icon: v.icon || '✂', duration: Number(v.duration) || 30, price: Number(v.price) || 0, branches: bv.length ? bv : db.branches.map(b => b.id) };
     if (v.id) { const x = db.services.find(s => s.id === v.id); if (x) Object.assign(x, data); toast('Service updated.'); }
     else { db.services.push({ id: 'srv' + Date.now(), ...data }); toast('Service added.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'adm-settings-form') {
+  if (form.getAttribute('id') === 'adm-settings-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     db.settings = { name: v.name, phone: v.phone, whatsapp: v.whatsapp || v.phone, email: v.email, address: v.address, logo: v.logo || '', social: { facebook: v.fb || '', instagram: v.ig || '', tiktok: v.tt || '' } };
     save(); toast('Settings saved.'); return;

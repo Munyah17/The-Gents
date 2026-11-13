@@ -149,7 +149,7 @@ document.addEventListener('input', e => {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'ct-hero-form') {
+  if (form.getAttribute('id') === 'ct-hero-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const item = { id: 'hero' + Date.now(), title: v.title, desc: v.desc || '', photo: v.photo || '' };
     const i = Number(v.idx);
@@ -157,7 +157,7 @@ document.addEventListener('submit', e => {
     else { if (!Array.isArray(db.hero)) db.hero = []; db.hero.push(item); }
     save(); closeModal(); toast('Hero slide saved.'); render(); return;
   }
-  if (form.id === 'ct-gal-form') {
+  if (form.getAttribute('id') === 'ct-gal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!v.url) { toast('Image URL is required.'); return; }
     const item = { id: 'gal' + Date.now(), url: v.url, alt: v.alt || '', category: v.category || 'Grooming Center' };

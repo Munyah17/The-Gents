@@ -134,7 +134,7 @@ function admUsers(top) {
 function usrForm(id) {
   const x = id ? clientProfiles().find(c => c.id === id) : { name: '', phone: '', email: '', status: 'active', note: '' };
   if (id && !x) return;
-  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
+  modal(id ? 'Edit Client' : 'Add Client', `<form id="usr-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Phone</label><input class="field" name="phone" value="${esc(x.phone || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><div class="form-group"><label class="form-label">Notes</label><input class="field" name="note" value="${esc(x.note || '')}"></div><div class="form-group"><label class="form-label">Portal password (optional — creates a client login)</label><input class="field" type="password" name="portalPass" minlength="6" placeholder="Leave blank for walk-in records only"></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Client'}</button></form>`);
 }
 
 // =====================================================================
@@ -172,7 +172,7 @@ function stfForm(id) {
   if (id && !x) return;
   const isAdmin = x.permissions === '*';
   const roleOpts = (db.roles || []).map(r => `<option value="${r.id}" ${x.roleId === r.id ? 'selected' : ''}>${esc(r.name)} (role)</option>`).join('');
-  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
+  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" minlength="6" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
 }
 
 function stfPerms(id) {
@@ -478,13 +478,20 @@ document.addEventListener('click', e => {
 
 document.addEventListener('submit', e => {
   const form = e.target;
-  if (form.id === 'usr-form') {
+  if (form.getAttribute('id') === 'usr-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (v.id) { const x = clientProfiles().find(c => c.id === v.id); if (x) Object.assign(x, { name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note }); toast('Client updated.'); }
     else { clientProfiles().push({ id: 'cli' + Date.now(), name: v.name, phone: v.phone, email: v.email, status: v.status, note: v.note, createdAt: new Date().toISOString().slice(0, 10) }); toast('Client added.'); }
+    if (v.portalPass) {
+      if (!v.email) toast('No email — portal login was not created.');
+      else if (v.portalPass.length < 6) toast('Portal password must be 6+ characters — login was not created.');
+      else fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'client-register', name: v.name, email: v.email, phone: v.phone, password: v.portalPass, noSession: true }), credentials: 'same-origin' })
+        .then(async r => { const j = await r.json().catch(() => null); toast(r.status === 409 ? 'Client saved — a login account with that email already exists.' : (j && j.ok ? 'Login account created for ' + v.email + '.' : 'Client saved, but login failed: ' + ((j && j.error) || ('server error ' + r.status)))); })
+        .catch(() => toast('Client saved — could not reach server to create login.'));
+    }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'stf-form') {
+  if (form.getAttribute('id') === 'stf-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     const isAdmin = v.access === 'admin';
     const roleId = isAdmin ? '' : (v.roleId || '');
@@ -492,37 +499,42 @@ document.addEventListener('submit', e => {
     let sid = v.id;
     if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : (x.permissions === '*' ? [] : x.permissions), status: v.status }); } toast('Staff updated.'); }
     else { const rec = { id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : [], protected: false, status: v.status, createdAt: new Date().toISOString().slice(0, 10) }; staffAll().push(rec); sid = rec.id; toast(isAdmin ? 'Administrator added.' : 'Staff added — assign permissions from the Perms button.'); }
-    if (v.password) fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' }).catch(() => {});
+    if (v.password) {
+      if (v.password.length < 6) toast('Password must be at least 6 characters — login credentials were NOT set. Use Edit to try again.');
+      else fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' })
+        .then(async r => { const j = await r.json().catch(() => null); if (!r.ok || !(j && j.ok)) toast('Profile saved, but password rejected: ' + ((j && j.error) || ('server error ' + r.status))); })
+        .catch(() => toast('Profile saved, but password could not be sent — use Edit to set it again.'));
+    }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'role-form') {
+  if (form.getAttribute('id') === 'role-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
     const perms = fd.getAll('perm');
     if (v.id) { const r = (db.roles || []).find(x => x.id === v.id); if (r) { r.name = v.name; r.perms = perms; } toast('Role updated.'); }
     else { if (!(db.roles || []).some(r => r.name.toLowerCase() === v.name.toLowerCase())) (db.roles = db.roles || []).push({ id: 'rol' + Date.now(), name: v.name, perms, createdAt: new Date().toISOString().slice(0, 10) }); else return toast('A role with that name exists.'); toast('Role created.'); }
     save(); closeModal(); render(); return;
   }
-  if (form.id === 'stf-perms-form') {
+  if (form.getAttribute('id') === 'stf-perms-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const fd = new FormData(form);
     const s = staffAll().find(x => x.id === v.id); if (!s || s.protected) return;
     s.permissions = fd.getAll('perm'); save(); toast('Permissions saved for ' + s.name + '.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-tx-form') {
+  if (form.getAttribute('id') === 'erp-tx-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().transactions.push({ id: 'TX-' + Date.now().toString().slice(-6), type: v.type, category: v.category, amount: Number(v.amount) || 0, date: v.date, description: v.description || '', branch: v.branch || '' });
     db.notifications.unshift((v.type === 'income' ? 'Income' : 'Expense') + ' recorded: ' + money(v.amount) + ' — ' + (v.description || v.category));
     save(); toast(v.type === 'income' ? 'Income recorded.' : 'Expense recorded.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-petty-form') {
+  if (form.getAttribute('id') === 'erp-petty-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().pettyCash.push({ id: 'PC-' + Date.now().toString().slice(-6), date: v.date, description: v.description, receivedBy: v.receivedBy || '', amount: Number(v.amount) || 0 });
     save(); toast('Petty cash voucher saved.'); closeModal(); render(); return;
   }
-  if (form.id === 'erp-opening') {
+  if (form.getAttribute('id') === 'erp-opening') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     acct().openingBalance = Number(v.opening) || 0; save(); toast('Opening balance updated.'); render(); return;
   }
-  if (form.id === 'ai-form') {
+  if (form.getAttribute('id') === 'ai-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form)); const q = (v.q || '').trim(); if (!q) return;
     aiLog.push({ q, a: aiAnswer(q) }); save(); render();
     const log = document.getElementById('ai-log'); if (log) log.scrollTop = log.scrollHeight;

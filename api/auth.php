@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cid = (int)$c['id'];
         }
 
-        $_SESSION['gents_client_id'] = $cid;
+        if ($action === 'client-login' || empty($in['noSession'])) $_SESSION['gents_client_id'] = $cid;
         $st = db()->prepare('SELECT id, name, phone, email FROM clients WHERE id = ?');
         $st->execute([$cid]);
         jsonOut(['ok' => true, 'client' => $st->fetch()]);
@@ -111,8 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 1) Primary admin account (bcrypt, admin_users table)
     ensureSchema();
-    $st = db()->prepare('SELECT id, username, email FROM admin_users WHERE email = ?');
-    $st->execute([$email]);
+    $st = db()->prepare('SELECT id, username, email FROM admin_users WHERE email = ? OR username = ?');
+    $st->execute([$email, $email]);
     $adm = $st->fetch();
     $isPrimary = false;
     if ($adm) {
@@ -138,6 +138,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach (($d['staff'] ?? []) as $i => $x) { if (($x['id'] ?? '') === ($staff['id'] ?? '')) unset($d['staff'][$i]['password']); }
             storeData($d);
             unset($staff['password']);
+        }
+    }
+
+    // 2b) Username login — staff_users is keyed by email, so resolve the
+    // payload staff record by username first, then check its credential.
+    if (!$staff) {
+        foreach (staffList() as $s) {
+            if (strtolower(trim($s['username'] ?? '')) !== $email || empty($s['id'])) continue;
+            $stU = db()->prepare('SELECT staff_key, password_hash FROM staff_users WHERE staff_key = ?');
+            $stU->execute([$s['id']]);
+            $suU = $stU->fetch();
+            if (!$suU || !password_verify($pass, (string)$suU['password_hash'])) continue;
+            if (($s['status'] ?? 'active') === 'suspended') break;
+            $staff = $s;
+            break;
         }
     }
 

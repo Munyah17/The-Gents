@@ -213,7 +213,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('submit', async e => {
   const form = e.target;
-  if (form.id === 'client-auth-form') {
+  if (form.getAttribute('id') === 'client-auth-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const btn = form.querySelector('button[type=submit]'); if (btn) btn.disabled = true;
@@ -230,7 +230,7 @@ document.addEventListener('submit', async e => {
     } catch (x) { toast('Could not reach the server — check your connection.'); }
     if (btn) btn.disabled = false; return;
   }
-  if (form.id === 'cl-topup-form') {
+  if (form.getAttribute('id') === 'cl-topup-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     const amount = Number(v.amount);
@@ -246,7 +246,7 @@ document.addEventListener('submit', async e => {
       else toast((j && j.error) || 'Top-up failed.');
     }).catch(() => toast('Could not reach the server.')); return;
   }
-  if (form.id === 'cl-gc-form') {
+  if (form.getAttribute('id') === 'cl-gc-form') {
     e.preventDefault(); e.stopImmediatePropagation();
     const v = Object.fromEntries(new FormData(form));
     clApi('issue-giftcard', { amount: Number(v.amount), toName: v.toName, toEmail: v.toEmail, maxUses: Number(v.maxUses), serviceId: v.serviceId || '', expiresAt: v.expiresAt || '' }).then(j => {
@@ -254,7 +254,7 @@ document.addEventListener('submit', async e => {
       else toast((j && j.error) || 'Could not issue gift card.');
     }).catch(() => toast('Could not reach the server.')); return;
   }
-  if (form.id !== 'cl-profile-form') return;
+  if (form.getAttribute('id') !== 'cl-profile-form') return;
   e.preventDefault();
   const v = Object.fromEntries(new FormData(form));
   db.clientProfile = { name: v.name, phone: v.phone, email: v.email, favBranch: v.favBranch || '', favBarber: v.favBarber || '' };

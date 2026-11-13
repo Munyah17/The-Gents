@@ -1,9 +1,10 @@
 # The Gents Barber — project notes
 
 ## Build
-- Edit `prototype.html` and/or `src/*-extra.js`, then run `node _build.js` to regenerate all `.html` pages + `assets/`.
+- Edit `src/core.js` / `src/core.css` and/or `src/*-extra.js` / `src/*.css`, then run `node _build.js` to concatenate them into `assets/` and regenerate all `.html` page shells. Never edit the generated `.html` files or `assets/` output directly.
+- `src/core.js` ends its pre-module section with a `/*@@EXTRAS@@*/` marker where `_build.js` splices the `*-extra.js` modules (order matters — later function declarations win).
 - Local run: `php -S localhost:8080 router.php` (extensionless routes work).
-- Production: upload everything + `.htaccess`; import `thegents_db.sql` into the cPanel database.
+- Production: upload everything + `.htaccess`; import `gents_db.sql` into the cPanel database.
 
 ## Conventions / rules
 - **Barber card photos**: `.barber-photo` is `aspect-ratio:3/4` + `object-fit:cover` + `object-position:50% 15%` — portrait frame, top-biased crop so faces are never cut. Never use `contain` (leaves side gaps) or plain `cover` without top bias.
