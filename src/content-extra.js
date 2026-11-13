@@ -67,7 +67,7 @@ function ctGalleryForm(i) {
   modal(i >= 0 ? 'Edit Gallery Image' : 'Add Gallery Image', `<form id="ct-gal-form"><input type="hidden" name="idx" value="${i}">
   ${ctMediaField('Image', 'url', g ? g.url : '', 'https://… or /uploads/…')}
   <div class="form-group"><label class="form-label">Caption / alt text</label><input class="field" name="alt" value="${esc(g ? g.alt : '')}" placeholder="e.g. Barbershop interior"></div>
-  <div class="form-group"><label class="form-label">Category</label><input class="field" name="category" list="ct-cats" value="${esc(g ? g.category : 'Salon')}" placeholder="Salon"><datalist id="ct-cats">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
+  <div class="form-group"><label class="form-label">Category</label><input class="field" name="category" list="ct-cats" value="${esc(g ? g.category : 'Grooming Center')}" placeholder="Grooming Center"><datalist id="ct-cats">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></div>
   <button class="btn btn-gold">${i >= 0 ? 'Save Changes' : 'Add Image'}</button></form>`);
 }
 
@@ -160,7 +160,7 @@ document.addEventListener('submit', e => {
   if (form.id === 'ct-gal-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
     if (!v.url) { toast('Image URL is required.'); return; }
-    const item = { id: 'gal' + Date.now(), url: v.url, alt: v.alt || '', category: v.category || 'Salon' };
+    const item = { id: 'gal' + Date.now(), url: v.url, alt: v.alt || '', category: v.category || 'Grooming Center' };
     const i = Number(v.idx);
     if (i >= 0 && db.gallery && db.gallery[i]) { const old = db.gallery[i]; item.id = old.id || item.id; db.gallery[i] = item; }
     else { if (!Array.isArray(db.gallery)) db.gallery = []; db.gallery.push(item); }

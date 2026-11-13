@@ -71,7 +71,7 @@ const reps = [
 
   // --- login + loginCard functions (inserted before confirmPage) ---
   ["function confirmPage(){",
-   "function login(){return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class=\"shell\" style=\"max-width:560px\"><div class=\"page-panel\" style=\"margin:60px auto\"><div class=\"eyebrow\">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style=\"margin:12px 0 6px\">Sign In</h2><p class=\"muted\">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id=\"login-form\" data-role=\"${role}\"><div class=\"form-group\"><label class=\"form-label\">Email, name or pseudonym</label><input class=\"field\" type=\"text\" required name=\"email\" placeholder=\"you@example.com · Alex Demo · AD\"></div><div class=\"form-group\"><label class=\"form-label\">Password</label><input class=\"field\" type=\"password\" required name=\"password\" placeholder=\"Enter your password\"></div><button class=\"btn btn-gold\" type=\"submit\" style=\"width:100%\">Sign In →</button></form><p class=\"muted small\" style=\"margin-top:20px;text-align:center\">${admin?'':'New here? <a href=\"booking\" style=\"color:var(--gold)\">Book an appointment</a>'}</p></div></div>`}function confirmPage(){"],
+   "function login(){if(auth('admin')){location.replace('admin');return''}if(auth('client')){location.replace('client');return''}return loginCard('client')}function loginCard(role){const admin=role==='admin';return `<div class=\"shell\" style=\"max-width:560px\"><div class=\"page-panel\" style=\"margin:60px auto\"><div class=\"eyebrow\">${admin?'ADMIN PORTAL':'CLIENT PORTAL'}</div><h2 style=\"margin:12px 0 6px\">Sign In</h2><p class=\"muted\">${admin?'Sign in to the management dashboard.':'Sign in to view and manage your bookings.'}</p><form id=\"login-form\" data-role=\"${role}\"><div class=\"form-group\"><label class=\"form-label\">Email, name or pseudonym</label><input class=\"field\" type=\"text\" required name=\"email\" placeholder=\"you@example.com · Alex Demo · AD\"></div><div class=\"form-group\"><label class=\"form-label\">Password</label><input class=\"field\" type=\"password\" required name=\"password\" placeholder=\"Enter your password\"></div><button class=\"btn btn-gold\" type=\"submit\" style=\"width:100%\">Sign In →</button></form><p class=\"muted small\" style=\"margin-top:20px;text-align:center\">${admin?'':'New here? <a href=\"booking\" style=\"color:var(--gold)\">Book an appointment</a>'}</p></div></div>`}function confirmPage(){"],
 
   // --- client portal: auth gate, drop membership bits, de-demo ---
   ["function client(){let list=", "function client(){if(!auth('client')){location.replace('login');return''}let list="],
@@ -126,16 +126,16 @@ const reps = [
 
   // --- client profile in seed data ---
   ["tiktok:'https://www.tiktok.com/@thegentscutandshaves'}}",
-   "tiktok:'https://www.tiktok.com/@thegentscutandshaves'},clientProfile:{name:'T. Moyo',phone:'+263771234567',email:'tmoyo@example.com',favBranch:'',favBarber:''}}"],
+   "tiktok:'https://www.tiktok.com/@thegentscutandshaves'},clientProfile:{name:'',phone:'',email:'',favBranch:'',favBarber:''}}"],
 
   // --- fix: closest() matched <body data-page> on every click, causing a full
   // re-render that wiped form fields. Exclude document.body from matches. ---
   ["if(!el)return;if(el.dataset.action){e.preventDefault();handle(el.dataset.action)}else if(el.dataset.page){e.preventDefault();navigate(el.dataset.page)}",
    "if(!el||el===document.body)return;if(el.dataset.action){e.preventDefault();handle(el.dataset.action)}else if(el.dataset.page){e.preventDefault();navigate(el.dataset.page)}"],
 
-  // init: resolve branch hash + pending booking preset before first render
-  ["document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});render();",
-   "document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\\/?/,''));if(!h){page='home';location.replace('index')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}bootRemote();render();"]
+  // init: resolve branch hash + pending booking preset + session check before first render
+  ["bootRender();",
+   "if(page==='branch'){const h=decodeURIComponent(location.hash.replace(/^#\\/?/,''));if(!h){page='home';location.replace('index')}else page='branch:'+h}try{const fp2=(location.pathname.split('/').pop()||'');const bp=fp2==='booking'&&sessionStorage.getItem('gents_booking_preset');if(bp){sessionStorage.removeItem('gents_booking_preset');resetBooking(JSON.parse(bp))}}catch(e){}bootRemote();bootRender();"]
 ];
 
 for (const [a, b] of reps) {
@@ -164,16 +164,19 @@ fs.writeFileSync(path.join(ROOT, 'assets', 'css', 'style.css'), css.trim() + '\n
 fs.writeFileSync(path.join(ROOT, 'assets', 'js', 'app.js'), js);
 
 // --- Generate pages ---
+// Auto-version assets by content hash so browsers never serve stale bundles
+const crypto = require('crypto');
+const V = crypto.createHash('md5').update(css + js).digest('hex').slice(0, 8);
 const tpl = (dp, title) => `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff"><title>The Gent’s · ${title}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=3">
+<link rel="stylesheet" href="assets/css/style.css?v=${V}">
 </head>
 <body data-page="${dp}">
 <div id="app"></div><div id="modal-root"></div><div id="toast-root"></div>
-<script src="assets/js/app.js?v=3"></script>
+<script src="assets/js/app.js?v=${V}"></script>
 </body>
 </html>
 `;

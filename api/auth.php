@@ -36,6 +36,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonOut(['ok' => true]);
     }
 
+    // ---- Staff credential management (admin session required) ----
+    // {action:"staff-credential", staffKey, email, password} → set/reset password
+    // {action:"staff-credential", staffKey, remove:true}     → delete credential
+    if ($action === 'staff-credential') {
+        if (empty($_SESSION['gents_admin'])) jsonOut(['ok' => false, 'error' => 'unauthorized'], 401);
+        ensureSchema();
+        $sid = trim((string)($in['staffKey'] ?? ''));
+        $em  = strtolower(trim((string)($in['email'] ?? '')));
+        $pw  = (string)($in['password'] ?? '');
+        if ($sid === '' || $em === '') jsonOut(['ok' => false, 'error' => 'missing fields'], 400);
+        if (!empty($in['remove'])) {
+            db()->prepare('DELETE FROM staff_users WHERE staff_key = ?')->execute([$sid]);
+            jsonOut(['ok' => true]);
+        }
+        if (strlen($pw) < 6) jsonOut(['ok' => false, 'error' => 'password must be 6+ characters'], 400);
+        db()->prepare('INSERT INTO staff_users (staff_key, email, password_hash) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE email = VALUES(email), password_hash = VALUES(password_hash)')
+            ->execute([$sid, $em, password_hash($pw, PASSWORD_DEFAULT)]);
+        jsonOut(['ok' => true]);
+    }
+
     // ---- Client portal accounts ----
     if ($action === 'client-register' || $action === 'client-login') {
         ensureSchema();
@@ -101,12 +122,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $isPrimary = $hash !== '' && password_verify($pass, $hash);
     }
 
-    // 2) Staff records stored in site data
+    // 2) Staff credentials — bcrypt hashes in the staff_users table
     $staff = null;
-    foreach (staffList() as $s) {
-        if (strtolower($s['email'] ?? '') === $email && ($s['password'] ?? '') === $pass) { $staff = $s; break; }
+    $st = db()->prepare('SELECT staff_key, password_hash FROM staff_users WHERE email = ?');
+    $st->execute([$email]);
+    $su = $st->fetch();
+    if ($su && password_verify($pass, (string)$su['password_hash'])) {
+        foreach (staffList() as $s) {
+            if (($s['id'] ?? '') === $su['staff_key'] || strtolower($s['email'] ?? '') === $email) { $staff = $s; break; }
+        }
+        if ($staff && ($staff['status'] ?? 'active') === 'suspended') $staff = null;
+        // Strip any leftover plaintext password from the payload record
+        if ($staff && isset($staff['password'])) {
+            $d = loadData();
+            foreach (($d['staff'] ?? []) as $i => $x) { if (($x['id'] ?? '') === ($staff['id'] ?? '')) unset($d['staff'][$i]['password']); }
+            storeData($d);
+            unset($staff['password']);
+        }
     }
-    if ($staff && ($staff['status'] ?? 'active') === 'suspended') $staff = null;
+
+    // 3) Legacy migration: payload staff records may still hold plaintext passwords.
+    // Verify once, move the credential into staff_users (bcrypt), strip it from the payload.
+    if (!$staff) {
+        $d = null;
+        foreach (staffList() as $s) {
+            if (strtolower($s['email'] ?? '') !== $email || !isset($s['password']) || $s['password'] === '') continue;
+            if (!hash_equals((string)$s['password'], $pass)) continue;
+            db()->prepare('INSERT INTO staff_users (staff_key, email, password_hash) VALUES (?, ?, ?)
+                ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)')
+                ->execute([$s['id'], $email, password_hash($pass, PASSWORD_DEFAULT)]);
+            $d = $d ?? loadData();
+            foreach (($d['staff'] ?? []) as $i => $x) { if (($x['id'] ?? '') === ($s['id'] ?? '')) unset($d['staff'][$i]['password']); }
+            if (($s['status'] ?? 'active') !== 'suspended') $staff = $s;
+            break;
+        }
+        if ($d) storeData($d);
+    }
 
     if (!$isPrimary && !$staff) jsonOut(['ok' => false, 'error' => 'invalid credentials'], 401);
 

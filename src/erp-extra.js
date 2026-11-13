@@ -57,7 +57,7 @@ const LEGACY_PERM_MAP = {
   staffmgmt: ['staffmgmt.view', 'staffmgmt.manage'],
   erp: ['erp.view', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr', 'erp.assistant', 'erp.manage']
 };
-const STAFF_SEED = [{ id: 'admin1', username: 'Munyah', name: 'Munyah', email: 'munyah777@gmail.com', password: '@@Griezmann177#$', role: 'Super Admin', permissions: '*', protected: true, status: 'active', salary: 0, createdAt: '2026-01-01' }];
+const STAFF_SEED = [{ id: 'admin1', username: 'Munyah', name: 'Munyah', email: 'munyah777@gmail.com', role: 'Super Admin', permissions: '*', protected: true, status: 'active', salary: 0, createdAt: '2026-01-01' }];
 const ROLES = ['Receptionist', 'Manager', 'Super Admin'];
 
 function safeSS(k) { try { return sessionStorage.getItem(k) } catch (e) { return null } }
@@ -68,7 +68,7 @@ function roleSeeds() {
     { id: 'rol-mgr', name: 'Manager', perms: ['dashboard.view', 'bookings.view', 'bookings.create', 'bookings.approve', 'bookings.decline', 'bookings.complete', 'bookings.cancel', 'bookings.pay', 'bookings.export', 'requests.view', 'calendar.view', 'branches.view', 'branches.manage', 'staff_data.view', 'staff_data.manage', 'content.view', 'content.manage', 'clients.view', 'clients.manage', 'membership.view', 'membership.tiers', 'membership.members', 'membership.wallets', 'membership.giftcards', 'membership.rewards', 'reports.view', 'usermgmt.view', 'usermgmt.manage', 'staffmgmt.view', 'erp.view', 'erp.transactions', 'erp.payroll', 'erp.petty', 'erp.hr', 'erp.assistant', 'erp.manage'], createdAt: '2026-01-01' }
   ];
 }
-function admMe() { const l = staffAll(); return l.find(s => s.id === safeSS('gents_staff')) || l[0] || null; }
+function admMe() { const l = staffAll(); const id = safeSS('gents_staff') || ''; if (id.indexOf('admin_users:') === 0) return { id, username: 'Admin', name: 'Administrator', email: '', role: 'Super Admin', permissions: '*', protected: true, status: 'active' }; return l.find(s => s.id === id) || null; }
 function expandPerms(list) { const out = new Set(); (list || []).forEach(p => (LEGACY_PERM_MAP[p] || [p]).forEach(x => out.add(x))); return [...out]; }
 function myPerms() {
   const m = admMe(); if (!m) return [];
@@ -147,7 +147,7 @@ function admStaff(top) {
   const permCount = s => s.permissions === '*' ? 'All' : expandPerms([...(s.permissions || []), ...((roles.find(x => x.id === (s.roleId || '') || x.name === (s.roleId || s.role)) || {}).perms || [])]).length + ' perms';
   const canManage = hasPerm('staffmgmt.manage');
   return top + admRolesPanel(canManage) + `<div class="panel"><div class="panel-head"><h3>Staff & Admins (${list.length})</h3><div class="auth-actions">${canManage ? ioButtons('staff', true) + button('+ Add Staff', 'stf-add', 'btn btn-gold btn-sm') : ''}</div></div>
-  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Salary</th><th>Permissions</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(s => `<tr><td><strong>${esc(s.name)}</strong>${s.protected ? ' <span class="badge status confirmed" style="font-size:9px">OWNER</span>' : ''}</td><td>${esc(s.username)}</td><td>${esc(s.email)}</td><td>${esc(roleName(s))}</td><td>${money(s.salary || 0)}</td><td>${s.permissions === '*' ? 'All' : permCount(s)}</td><td>${s.status === 'active' ? '<span class="badge status completed">Active</span>' : '<span class="badge status cancelled">Suspended</span>'}</td><td><div class="row-actions">${canManage || s.id === (admMe() || {}).id ? `<button class="btn btn-sm" data-action="stf-edit:${s.id}">Edit</button>` : ''}${!s.protected && canManage ? `<button class="btn btn-sm" data-action="stf-perms:${s.id}">Perms</button><button class="btn btn-sm" data-action="stf-del:${s.id}">Del</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div></div>`;
+  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Permissions</th><th>Status</th><th>Actions</th></tr></thead><tbody>${list.map(s => `<tr><td><strong>${esc(s.name)}</strong></td><td>${esc(s.username)}</td><td>${esc(s.email)}</td><td>${esc(roleName(s))}</td><td>${s.permissions === '*' ? 'All' : permCount(s)}</td><td>${s.status === 'active' ? '<span class="badge status completed">Active</span>' : '<span class="badge status cancelled">Suspended</span>'}</td><td><div class="row-actions">${canManage || s.id === (admMe() || {}).id ? `<button class="btn btn-sm" data-action="stf-edit:${s.id}">Edit</button>` : ''}${!s.protected && canManage ? `<button class="btn btn-sm" data-action="stf-perms:${s.id}">Perms</button><button class="btn btn-sm" data-action="stf-del:${s.id}">Del</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div></div>`;
 }
 
 function admRolesPanel(canManage) {
@@ -168,10 +168,11 @@ function roleForm(id) {
 }
 
 function stfForm(id) {
-  const x = id ? staffAll().find(s => s.id === id) : { username: '', name: '', email: '', role: '', roleId: '', password: '', salary: 0, status: 'active' };
+  const x = id ? staffAll().find(s => s.id === id) : { username: '', name: '', email: '', role: '', roleId: '', password: '', status: 'active' };
   if (id && !x) return;
+  const isAdmin = x.permissions === '*';
   const roleOpts = (db.roles || []).map(r => `<option value="${r.id}" ${x.roleId === r.id ? 'selected' : ''}>${esc(r.name)} (role)</option>`).join('');
-  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId"><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Monthly salary (USD)</label><input class="field" type="number" min="0" step="0.01" name="salary" value="${x.salary || 0}"></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
+  modal(id ? 'Edit Staff' : 'Add Staff', `<form id="stf-form"><input type="hidden" name="id" value="${esc(id || '')}"><div class="form-grid"><div class="form-group"><label class="form-label">Full name</label><input class="field" required name="name" value="${esc(x.name || '')}"></div><div class="form-group"><label class="form-label">Username</label><input class="field" required name="username" value="${esc(x.username || '')}"></div><div class="form-group"><label class="form-label">Email</label><input class="field" type="email" required name="email" value="${esc(x.email || '')}"></div><div class="form-group"><label class="form-label">Job title</label><input class="field" name="role" value="${esc(x.role || '')}" placeholder="e.g. Receptionist"></div><div class="form-group"><label class="form-label">Access level</label><select class="field" name="access"><option value="staff" ${isAdmin ? '' : 'selected'}>Staff — limited permissions</option><option value="admin" ${isAdmin ? 'selected' : ''}>Administrator — full access</option></select><p class="muted small" style="margin:4px 0 0">Admins see every dashboard section; staff only see what their permissions allow.</p></div><div class="form-group"><label class="form-label">Permission role</label><select class="field" name="roleId" ${isAdmin ? 'disabled' : ''}><option value="">— none —</option>${roleOpts}</select><p class="muted small" style="margin:4px 0 0">Assign a custom role to grant its permission set — you can add more below.</p></div><div class="form-group"><label class="form-label">${id ? 'New password (blank = keep)' : 'Password'}</label><input class="field" type="password" name="password" ${id ? '' : 'required'}></div><div class="form-group"><label class="form-label">Status</label><select class="field" name="status"><option value="active" ${x.status === 'active' ? 'selected' : ''}>Active</option><option value="suspended" ${x.status === 'suspended' ? 'selected' : ''}>Suspended</option></select></div></div><button class="btn btn-gold">${id ? 'Save Changes' : 'Add Staff'}</button></form>`);
 }
 
 function stfPerms(id) {
@@ -258,7 +259,7 @@ function runPayroll() {
 function payslip(id) {
   const p = acct().payroll.find(x => x.id === id); if (!p) return;
   const s = staffAll().find(x => x.id === p.staffId) || {};
-  modal('Payslip ' + esc(p.id), `<div class="payslip"><div class="payslip-head"><div><div class="eyebrow">THE GENT’S BARBER & GENTS SALON</div><h3>Payslip</h3></div><div class="small muted" style="text-align:right">${esc(p.month)}<br>${p.status === 'paid' ? 'PAID' : 'PENDING'}</div></div>
+  modal('Payslip ' + esc(p.id), `<div class="payslip"><div class="payslip-head"><div><div class="eyebrow">THE GENT’S BARBER & GENTS GROOMING CENTER</div><h3>Payslip</h3></div><div class="small muted" style="text-align:right">${esc(p.month)}<br>${p.status === 'paid' ? 'PAID' : 'PENDING'}</div></div>
   <div class="kv" style="margin:16px 0"><span>Employee</span><b>${esc(p.name)}</b><span>Role</span><b>${esc(p.role)}</b><span>Employee ID</span><b>${esc(p.staffId)}</b></div>
   <table style="width:100%;font-size:13px"><thead><tr><th style="text-align:left">Earnings</th><th style="text-align:right">Amount</th></tr></thead><tbody><tr><td>Basic Salary</td><td style="text-align:right">${money(p.gross)}</td></tr></tbody></table>
   <table style="width:100%;font-size:13px;margin-top:8px"><thead><tr><th style="text-align:left">Deductions</th><th style="text-align:right">Amount</th></tr></thead><tbody><tr><td>Statutory / Other</td><td style="text-align:right">${money(p.deductions || 0)}</td></tr></tbody></table>
@@ -485,10 +486,13 @@ document.addEventListener('submit', e => {
   }
   if (form.id === 'stf-form') {
     e.preventDefault(); const v = Object.fromEntries(new FormData(form));
-    const roleId = v.roleId || '';
+    const isAdmin = v.access === 'admin';
+    const roleId = isAdmin ? '' : (v.roleId || '');
     const roleName = roleId ? ((db.roles || []).find(r => r.id === roleId) || {}).name || '' : '';
-    if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: v.role || roleName, roleId, status: v.status, salary: Number(v.salary) || 0 }); if (v.password) x.password = v.password; } toast('Staff updated.'); }
-    else { staffAll().push({ id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), password: v.password, role: v.role || roleName, roleId, permissions: [], protected: false, status: v.status, salary: Number(v.salary) || 0, createdAt: new Date().toISOString().slice(0, 10) }); toast('Staff added — assign permissions from the Perms button.'); }
+    let sid = v.id;
+    if (v.id) { const x = staffAll().find(s => s.id === v.id); if (x) { Object.assign(x, { name: v.name, username: v.username, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : (x.permissions === '*' ? [] : x.permissions), status: v.status }); } toast('Staff updated.'); }
+    else { const rec = { id: 'staff' + Date.now(), username: v.username, name: v.name, email: v.email.toLowerCase(), role: isAdmin ? 'Administrator' : (v.role || roleName), roleId, permissions: isAdmin ? '*' : [], protected: false, status: v.status, createdAt: new Date().toISOString().slice(0, 10) }; staffAll().push(rec); sid = rec.id; toast(isAdmin ? 'Administrator added.' : 'Staff added — assign permissions from the Perms button.'); }
+    if (v.password) fetch('api/auth.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'staff-credential', staffKey: sid, email: v.email, password: v.password }), credentials: 'same-origin' }).catch(() => {});
     save(); closeModal(); render(); return;
   }
   if (form.id === 'role-form') {
@@ -531,7 +535,7 @@ async function payslipPDF(p) {
   await loadPDF();
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  doc.setFontSize(16); doc.text("The Gent's Barber & Gents Salon", 14, 18);
+  doc.setFontSize(16); doc.text("The Gent's Barber & Gents Grooming Center", 14, 18);
   doc.setFontSize(11); doc.text('PAYSLIP — ' + p.month, 14, 26);
   doc.setFontSize(10);
   doc.text('Employee: ' + p.name + '  |  Role: ' + p.role + '  |  ID: ' + p.staffId, 14, 34);

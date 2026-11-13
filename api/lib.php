@@ -50,6 +50,15 @@ function ensureSchema(): void {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Staff login credentials (bcrypt) — profiles/permissions stay in site_data.staff
+    db()->exec("CREATE TABLE IF NOT EXISTS staff_users (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        staff_key VARCHAR(60) NOT NULL UNIQUE,
+        email VARCHAR(150) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function loadData() {
@@ -58,6 +67,13 @@ function loadData() {
     if (!$row) return null;
     $d = json_decode($row['payload'], true);
     return is_array($d) ? $d : null;
+}
+
+// Revision token for optimistic concurrency — changes whenever the payload changes.
+function dataRev(): ?string {
+    ensureSchema();
+    $p = db()->query("SELECT payload FROM site_data WHERE id = 1")->fetchColumn();
+    return $p === false ? null : md5((string)$p);
 }
 
 function storeData(array $data): void {

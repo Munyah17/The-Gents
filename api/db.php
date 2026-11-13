@@ -10,8 +10,9 @@ require_once __DIR__ . '/notify.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $d = loadData();
-    if ($d === null) jsonOut(['ok' => true, 'data' => null]);
-    if (!isAdmin()) jsonOut(['ok' => true, 'data' => publicData($d)]);
+    $rev = dataRev();
+    if ($d === null) jsonOut(['ok' => true, 'data' => null, 'rev' => $rev]);
+    if (!isAdmin()) jsonOut(['ok' => true, 'data' => publicData($d), 'rev' => $rev]);
     $perms = staffPermSet(currentStaff());
     if ($perms === null) {
         // Primary admin — full data, but never ship staff password fields.
@@ -19,9 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             foreach ($d['staff'] as &$s) unset($s['password']);
             unset($s);
         }
-        jsonOut(['ok' => true, 'data' => $d]);
+        jsonOut(['ok' => true, 'data' => $d, 'rev' => $rev]);
     }
-    jsonOut(['ok' => true, 'data' => filterForStaff($d, $perms)]);
+    jsonOut(['ok' => true, 'data' => filterForStaff($d, $perms), 'rev' => $rev]);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isAdmin() || currentStaff() !== null) jsonOut(['ok' => false, 'error' => 'unauthorized'], 403);
         ensureSchema();
         db()->exec('DELETE FROM site_data');
-        jsonOut(['ok' => true]);
+        jsonOut(['ok' => true, 'rev' => dataRev()]);
     }
 
     // Frontend flags admin-intent writes; without a valid session they are rejected
@@ -46,10 +47,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $stored = loadData();
 
+    // Optimistic concurrency (admin writes only — guest merges are append-only
+    // and can't clobber): if the client sends the rev it last saw and the
+    // stored payload has since changed, reject with the current data (409).
+    $clientRev = (string)($_SERVER['HTTP_X_DATA_REV'] ?? '');
+    if (isAdmin() && $clientRev !== '' && $stored !== null && $clientRev !== dataRev()) {
+        $cur = isAdmin() ? $stored : publicData($stored);
+        if (isAdmin()) {
+            $perms = staffPermSet(currentStaff());
+            if ($perms !== null) $cur = filterForStaff($stored, $perms);
+            if (isset($cur['staff']) && is_array($cur['staff'])) foreach ($cur['staff'] as &$s) unset($s['password']);
+            unset($s);
+        }
+        jsonOut(['ok' => false, 'conflict' => true, 'rev' => dataRev(), 'data' => $cur], 409);
+    }
+
     if (isAdmin()) {
         $perms = staffPermSet(currentStaff());
         if ($perms === null) {
-            // Primary admin — full replace. Keep existing staff passwords if blanks sent.
+            // Primary admin — merge: keep stored keys the client didn't send,
+            // so a stale/partial payload can never silently delete data.
+            if ($stored && is_array($inc)) {
+                foreach ($stored as $k => $v) if (!array_key_exists($k, $inc)) $inc[$k] = $v;
+            }
             if ($stored && isset($inc['staff'], $stored['staff']) && is_array($inc['staff'])) {
                 $pw = [];
                 foreach ($stored['staff'] as $s) if (!empty($s['password'])) $pw[$s['id'] ?? ''] = $s['password'];
@@ -60,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             storeData($inc);
             try { sendBookingNotices(bookingDiffs($stored ?: [], $inc)); } catch (Throwable $t) {}
-            jsonOut(['ok' => true]);
+            jsonOut(['ok' => true, 'rev' => dataRev()]);
         }
 
         // Restricted staff — their payload only contains keys they may view.
@@ -87,13 +107,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         storeData($merged);
         try { sendBookingNotices(bookingDiffs($stored ?: [], $merged)); } catch (Throwable $t) {}
-        jsonOut(['ok' => true]);
+        jsonOut(['ok' => true, 'rev' => dataRev()]);
     }
 
     if ($stored === null) {
-        // First boot — accept the seed payload.
+        // First boot — only an authenticated admin may seed the database.
+        if (!isAdmin()) jsonOut(['ok' => false, 'error' => 'admin session required'], 403);
         storeData($inc);
-        jsonOut(['ok' => true]);
+        jsonOut(['ok' => true, 'rev' => dataRev()]);
     }
 
     // Guest merge requires the core collections to be present.
@@ -103,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $merged = mergePublicData($stored, $inc);
     storeData($merged);
     try { sendBookingNotices(bookingDiffs($stored, $merged)); } catch (Throwable $t) {}
-    jsonOut(['ok' => true, 'data' => publicData($merged)]);
+    jsonOut(['ok' => true, 'rev' => dataRev(), 'data' => publicData($merged)]);
 }
 
 jsonOut(['ok' => false, 'error' => 'method not allowed'], 405);
